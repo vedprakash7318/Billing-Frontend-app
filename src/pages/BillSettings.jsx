@@ -82,7 +82,7 @@ export default function BillSettings() {
         </button>
       }
     >
-      <div className="space-y-4">
+      <div className="max-w-3xl mx-auto space-y-4">
         {/* Navigation Tabs */}
         <div className="grid grid-cols-3 gap-1 bg-slate-200/70 p-1 rounded-2xl">
           <button

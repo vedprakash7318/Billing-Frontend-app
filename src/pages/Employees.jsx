@@ -129,7 +129,7 @@ export default function Employees() {
             </Link>
           </div>
         ) : (
-          <div className="space-y-2.5">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
             {employees.map((emp) => {
               const empId = emp.id || emp._id;
               const isSuspended = emp.status === 'SUSPENDED';

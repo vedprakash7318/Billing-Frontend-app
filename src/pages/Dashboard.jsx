@@ -48,44 +48,69 @@ export default function Dashboard() {
       title={store?.name || 'My Store Dashboard'}
       subtitle={store?.slug ? `store: ${store.slug}` : 'Merchant Admin'}
     >
-      <div className="space-y-4">
-        {/* Subscription Validity Banner */}
-        <Link
-          to="/subscription"
-          className="block bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 rounded-3xl p-5 text-white shadow-xl shadow-emerald-600/20 relative overflow-hidden active:scale-[0.99] transition-transform"
-        >
-          <div className="absolute right-0 top-0 bottom-0 w-32 bg-white/10 rounded-full blur-2xl pointer-events-none" />
+      <div className="space-y-5">
+        {/* Top Highlights: Subscription Banner & POS Billing Card */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          {/* Subscription Validity Banner */}
+          <Link
+            to="/subscription"
+            className="block bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 rounded-3xl p-5 text-white shadow-xl shadow-emerald-600/20 relative overflow-hidden active:scale-[0.99] transition-transform"
+          >
+            <div className="absolute right-0 top-0 bottom-0 w-32 bg-white/10 rounded-full blur-2xl pointer-events-none" />
 
-          <div className="relative z-10 space-y-3">
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] font-extrabold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-white/20 text-white backdrop-blur-sm border border-white/20">
-                {sub?.planName || 'Active Subscription'}
-              </span>
-              {typeof sub?.daysRemaining === 'number' && (
-                <span className="text-xs font-bold text-emerald-100 flex items-center gap-1">
-                  <Clock className="w-3.5 h-3.5" />
-                  {sub.daysRemaining > 0 ? `${sub.daysRemaining} days left` : 'Expired'}
+            <div className="relative z-10 space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-extrabold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-white/20 text-white backdrop-blur-sm border border-white/20">
+                  {sub?.planName || 'Active Subscription'}
                 </span>
-              )}
-            </div>
-
-            <div className="flex items-center justify-between">
-              <div>
-                <h2 className="text-lg font-black tracking-tight">{store?.name || 'Welcome!'}</h2>
-                <p className="text-xs text-emerald-100/90 mt-0.5">
-                  Tap to view subscription plans & renewals
-                </p>
+                {typeof sub?.daysRemaining === 'number' && (
+                  <span className="text-xs font-bold text-emerald-100 flex items-center gap-1">
+                    <Clock className="w-3.5 h-3.5" />
+                    {sub.daysRemaining > 0 ? `${sub.daysRemaining} days left` : 'Expired'}
+                  </span>
+                )}
               </div>
-              <ChevronRight className="w-5 h-5 text-emerald-200 shrink-0" />
-            </div>
-          </div>
-        </Link>
 
-        {/* Quick Metrics Grid */}
-        <div className="grid grid-cols-2 gap-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-lg font-black tracking-tight">{store?.name || 'Welcome!'}</h2>
+                  <p className="text-xs text-emerald-100/90 mt-0.5">
+                    Tap to view subscription plans & renewals
+                  </p>
+                </div>
+                <ChevronRight className="w-5 h-5 text-emerald-200 shrink-0" />
+              </div>
+            </div>
+          </Link>
+
+          {/* Big POS Billing Card */}
+          <Link
+            to="/billing"
+            className="p-5 bg-gradient-to-r from-slate-900 to-slate-800 text-white rounded-3xl flex items-center justify-between shadow-xl shadow-slate-950/20 hover:scale-[1.01] transition-transform"
+          >
+            <div className="flex items-center gap-3.5">
+              <div className="w-12 h-12 rounded-2xl bg-emerald-500 text-white flex items-center justify-center shadow-lg shadow-emerald-500/30 shrink-0">
+                <Receipt className="w-6 h-6" />
+              </div>
+              <div>
+                <div className="flex items-center gap-1.5">
+                  <h3 className="text-sm font-black text-white">Create New Bill</h3>
+                  <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                    POS
+                  </span>
+                </div>
+                <p className="text-xs text-slate-300 mt-1">Quick customer invoice & thermal receipt</p>
+              </div>
+            </div>
+            <ArrowRight className="w-5 h-5 text-emerald-400 shrink-0" />
+          </Link>
+        </div>
+
+        {/* Quick Metrics Grid (Responsive 2 cols mobile, 4 cols tablet/desktop) */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 md:gap-4">
           <Link
             to="/products"
-            className="bg-white rounded-3xl p-4 border border-slate-200/80 shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow"
+            className="bg-white rounded-3xl p-4 border border-slate-200/80 shadow-xs flex flex-col justify-between hover:shadow-md transition-shadow"
           >
             <div className="w-10 h-10 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
               <Package className="w-5 h-5" />
@@ -100,7 +125,7 @@ export default function Dashboard() {
 
           <Link
             to="/categories"
-            className="bg-white rounded-3xl p-4 border border-slate-200/80 shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow"
+            className="bg-white rounded-3xl p-4 border border-slate-200/80 shadow-xs flex flex-col justify-between hover:shadow-md transition-shadow"
           >
             <div className="w-10 h-10 rounded-2xl bg-teal-50 text-teal-600 flex items-center justify-center">
               <Layers className="w-5 h-5" />
@@ -112,32 +137,40 @@ export default function Dashboard() {
               <p className="text-xs font-bold text-slate-500 mt-0.5">Categories</p>
             </div>
           </Link>
+
+          <Link
+            to="/employees"
+            className="bg-white rounded-3xl p-4 border border-slate-200/80 shadow-xs flex flex-col justify-between hover:shadow-md transition-shadow"
+          >
+            <div className="w-10 h-10 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center">
+              <Users className="w-5 h-5" />
+            </div>
+            <div className="mt-3">
+              <span className="text-2xl font-black text-slate-900">
+                {loading ? '...' : metrics?.totalEmployees ?? 0}
+              </span>
+              <p className="text-xs font-bold text-slate-500 mt-0.5">Store Staff</p>
+            </div>
+          </Link>
+
+          <Link
+            to="/invoices"
+            className="bg-white rounded-3xl p-4 border border-slate-200/80 shadow-xs flex flex-col justify-between hover:shadow-md transition-shadow"
+          >
+            <div className="w-10 h-10 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center">
+              <Receipt className="w-5 h-5" />
+            </div>
+            <div className="mt-3">
+              <span className="text-2xl font-black text-slate-900">
+                {loading ? '...' : metrics?.totalInvoices ?? 0}
+              </span>
+              <p className="text-xs font-bold text-slate-500 mt-0.5">Past Bills</p>
+            </div>
+          </Link>
         </div>
 
-        {/* Big POS Billing Card */}
-        <Link
-          to="/billing"
-          className="p-4 bg-gradient-to-r from-slate-900 to-slate-800 text-white rounded-3xl flex items-center justify-between shadow-xl shadow-slate-950/20 hover:scale-[1.01] transition-transform"
-        >
-          <div className="flex items-center gap-3.5">
-            <div className="w-12 h-12 rounded-2xl bg-emerald-500 text-white flex items-center justify-center shadow-lg shadow-emerald-500/30 shrink-0">
-              <Receipt className="w-6 h-6" />
-            </div>
-            <div>
-              <div className="flex items-center gap-1.5">
-                <h3 className="text-sm font-black text-white">Create New Bill</h3>
-                <span className="text-[10px] font-extrabold uppercase px-2 py-0.2 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                  POS
-                </span>
-              </div>
-              <p className="text-xs text-slate-300 mt-0.5">Quick customer invoice & thermal receipt</p>
-            </div>
-          </div>
-          <ArrowRight className="w-5 h-5 text-emerald-400 shrink-0" />
-        </Link>
-
         {/* Quick App Action Shortcuts */}
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 md:gap-4">
           <Link
             to="/products/new"
             className="p-3.5 bg-slate-900 text-white rounded-2xl flex items-center gap-2.5 shadow-md shadow-slate-900/10 hover:bg-slate-800 transition-all"
@@ -153,7 +186,7 @@ export default function Dashboard() {
 
           <Link
             to="/categories/new"
-            className="p-3.5 bg-white border border-slate-200 text-slate-800 rounded-2xl flex items-center gap-2.5 shadow-sm hover:bg-slate-50 transition-all"
+            className="p-3.5 bg-white border border-slate-200 text-slate-800 rounded-2xl flex items-center gap-2.5 shadow-xs hover:bg-slate-50 transition-all"
           >
             <div className="w-8 h-8 rounded-xl bg-teal-50 text-teal-600 flex items-center justify-center shrink-0">
               <Plus className="w-4 h-4" />
@@ -161,6 +194,32 @@ export default function Dashboard() {
             <div className="min-w-0">
               <p className="text-xs font-bold truncate">Add Category</p>
               <p className="text-[10px] text-slate-500 truncate">Group items</p>
+            </div>
+          </Link>
+
+          <Link
+            to="/employees/new"
+            className="p-3.5 bg-white border border-slate-200 text-slate-800 rounded-2xl flex items-center gap-2.5 shadow-xs hover:bg-slate-50 transition-all"
+          >
+            <div className="w-8 h-8 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0">
+              <Users className="w-4 h-4" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-xs font-bold truncate">Add Employee</p>
+              <p className="text-[10px] text-slate-500 truncate">Cashier account</p>
+            </div>
+          </Link>
+
+          <Link
+            to="/bill-settings"
+            className="p-3.5 bg-white border border-slate-200 text-slate-800 rounded-2xl flex items-center gap-2.5 shadow-xs hover:bg-slate-50 transition-all"
+          >
+            <div className="w-8 h-8 rounded-xl bg-slate-100 text-slate-700 flex items-center justify-center shrink-0">
+              <Printer className="w-4 h-4" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-xs font-bold truncate">Bill Settings</p>
+              <p className="text-[10px] text-slate-500 truncate">Thermal receipt</p>
             </div>
           </Link>
         </div>

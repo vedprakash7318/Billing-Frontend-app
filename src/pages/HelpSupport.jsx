@@ -22,7 +22,7 @@ export default function HelpSupport() {
       subtitle="Assistance & Documentation"
       backTo="/profile"
     >
-      <div className="space-y-4 pb-12">
+      <div className="max-w-2xl mx-auto space-y-4 pb-12">
         {/* Banner */}
         <div className="bg-gradient-to-br from-indigo-900 via-slate-900 to-slate-950 text-white rounded-3xl p-5 shadow-xl relative overflow-hidden border border-slate-800">
           <div className="flex items-center gap-3">

@@ -53,7 +53,7 @@ export default function StoreProfile() {
 
   return (
     <AppLayout title="Store & Account" subtitle="Profile & Subscription">
-      <div className="space-y-4">
+      <div className="max-w-2xl mx-auto space-y-4">
         {/* Profile Card */}
         <div className="bg-white rounded-3xl p-5 border border-slate-200/80 shadow-sm text-center relative overflow-hidden">
           <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-emerald-500 to-teal-600 text-white flex items-center justify-center font-black text-2xl mx-auto shadow-lg shadow-emerald-500/25 mb-3">

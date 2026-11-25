@@ -85,7 +85,7 @@ export default function SubscriptionPlans() {
       subtitle="Store License & Upgrades"
       backTo="/profile"
     >
-      <div className="space-y-4 pb-12">
+      <div className="max-w-6xl mx-auto space-y-5 pb-12">
         {loading ? (
           <div className="py-20 text-center text-xs text-slate-400 animate-pulse">
             Loading subscription details & plans...
@@ -175,7 +175,7 @@ export default function SubscriptionPlans() {
                   No subscription plans available currently. Please contact Super Admin.
                 </div>
               ) : (
-                <div className="space-y-3">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {plans.map((p) => {
                     const isCurrent = current?.planId === (p.id || p._id);
                     const isActivating = activatingId === (p.id || p._id);

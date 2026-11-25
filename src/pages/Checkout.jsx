@@ -184,7 +184,7 @@ export default function Checkout() {
       backTo="/billing"
       hideBottomNav={true}
     >
-      <div className="space-y-3.5 pb-10">
+      <div className="max-w-2xl mx-auto space-y-4 pb-12">
 
         {/* 1. ORDER SUMMARY CARD */}
         <div className="bg-white rounded-3xl p-3.5 sm:p-4 border border-slate-200/80 shadow-xs space-y-3">

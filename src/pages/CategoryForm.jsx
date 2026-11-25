@@ -73,7 +73,7 @@ export default function CategoryForm() {
       backTo="/categories"
       hideBottomNav={true}
     >
-      <div className="space-y-4">
+      <div className="max-w-2xl mx-auto space-y-4">
         {loading ? (
           <div className="py-16 text-center text-xs text-slate-400">Loading details...</div>
         ) : (
