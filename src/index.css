@@ -1,0 +1,81 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+    background-color: #0f172a;
+  }
+}
+
+/* Hide scrollbars globally across the entire app while keeping full scrolling functionality */
+*::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
+* {
+  -ms-overflow-style: none !important;
+  scrollbar-width: none !important;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
+.no-scrollbar {
+  -ms-overflow-style: none !important;
+  scrollbar-width: none !important;
+}
+
+/* Active touch feedback */
+.tap-effect:active {
+  transform: scale(0.96);
+  transition: transform 0.1s ease-in-out;
+}
+
+/* Realistic receipt paper appearance */
+.receipt-paper {
+  background: #ffffff;
+  position: relative;
+  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.15);
+}
+
+.receipt-paper::before,
+.receipt-paper::after {
+  content: "";
+  display: block;
+  height: 8px;
+  background: radial-gradient(circle, transparent, transparent 50%, #ffffff 50%, #ffffff 100%);
+  background-size: 14px 14px;
+}
+
+/* Camera Barcode Scanner Viewport Fix (Prevents duplicate video/canvas rendering) */
+#barcode-reader-container canvas,
+[id^="barcode-reader"] canvas {
+  display: none !important;
+  visibility: hidden !important;
+  height: 0 !important;
+  width: 0 !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+#barcode-reader-container video,
+[id^="barcode-reader"] video {
+  width: 100% !important;
+  height: 100% !important;
+  max-height: 280px !important;
+  object-fit: cover !important;
+  border-radius: 1rem !important;
+}
+
+#barcode-reader-container video:not(:first-of-type),
+[id^="barcode-reader"] video:not(:first-of-type) {
+  display: none !important;
+}
