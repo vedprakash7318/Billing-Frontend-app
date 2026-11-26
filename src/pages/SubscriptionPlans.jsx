@@ -381,8 +381,12 @@ export default function SubscriptionPlans() {
 
   const quotas = data?.quotas || {
     smsBalance: 0,
+    smsPlanBalance: 0,
+    smsBoosterBalance: 0,
     smsTotalCredited: 0,
     whatsAppBalance: 0,
+    whatsAppPlanBalance: 0,
+    whatsAppBoosterBalance: 0,
     whatsAppTotalCredited: 0,
     isSmsGloballyEnabled: true,
     isWhatsAppGloballyEnabled: true,
@@ -549,7 +553,7 @@ export default function SubscriptionPlans() {
                       <span className="text-2xl font-black text-slate-950 font-mono">
                         {quotas.smsBalance}
                       </span>
-                      <span className="text-xs font-bold text-slate-400 ml-1">Left</span>
+                      <span className="text-xs font-bold text-slate-400 ml-1">Total Available</span>
                     </div>
                     {quotas.smsTotalCredited > 0 && (
                       <span className="text-[10px] text-slate-400 font-medium">
@@ -557,6 +561,24 @@ export default function SubscriptionPlans() {
                       </span>
                     )}
                   </div>
+
+                  {/* Quota Breakdown: Plan Quota vs Lifetime Booster */}
+                  <div className="grid grid-cols-2 gap-1.5 pt-1">
+                    <div className="bg-white rounded-xl p-2 border border-slate-200 text-center shadow-2xs">
+                      <span className="text-[9px] font-bold text-slate-400 block uppercase">1st: Main Plan</span>
+                      <span className="text-xs font-black text-slate-800 font-mono">{quotas.smsPlanBalance || 0}</span>
+                      <span className="text-[8px] text-slate-400 block">plan expiry</span>
+                    </div>
+                    <div className="bg-indigo-50/70 rounded-xl p-2 border border-indigo-200 text-center shadow-2xs">
+                      <span className="text-[9px] font-black text-indigo-600 block uppercase">2nd: Booster</span>
+                      <span className="text-xs font-black text-indigo-950 font-mono">{quotas.smsBoosterBalance || 0}</span>
+                      <span className="text-[8px] text-indigo-600 block font-bold">♾️ Never Expires</span>
+                    </div>
+                  </div>
+
+                  <p className="text-[10px] text-slate-500 leading-tight">
+                    ⚡ Priority: Pehle plan quota use hoga. Booster balance plan renew hone par naye plan me add ho jayega.
+                  </p>
 
                   {quotas.isSmsGloballyEnabled === false && quotas.smsDisabledNotice && (
                     <p className="text-[10px] text-amber-700 bg-amber-50 p-2 rounded-xl border border-amber-200">
@@ -590,7 +612,7 @@ export default function SubscriptionPlans() {
                       <span className="text-2xl font-black text-slate-950 font-mono">
                         {quotas.whatsAppBalance}
                       </span>
-                      <span className="text-xs font-bold text-slate-400 ml-1">Left</span>
+                      <span className="text-xs font-bold text-slate-400 ml-1">Total Available</span>
                     </div>
                     {quotas.whatsAppTotalCredited > 0 && (
                       <span className="text-[10px] text-slate-400 font-medium">
@@ -598,6 +620,24 @@ export default function SubscriptionPlans() {
                       </span>
                     )}
                   </div>
+
+                  {/* Quota Breakdown: Plan Quota vs Lifetime Booster */}
+                  <div className="grid grid-cols-2 gap-1.5 pt-1">
+                    <div className="bg-white rounded-xl p-2 border border-slate-200 text-center shadow-2xs">
+                      <span className="text-[9px] font-bold text-slate-400 block uppercase">1st: Main Plan</span>
+                      <span className="text-xs font-black text-slate-800 font-mono">{quotas.whatsAppPlanBalance || 0}</span>
+                      <span className="text-[8px] text-slate-400 block">plan expiry</span>
+                    </div>
+                    <div className="bg-emerald-50/70 rounded-xl p-2 border border-emerald-200 text-center shadow-2xs">
+                      <span className="text-[9px] font-black text-emerald-700 block uppercase">2nd: Booster</span>
+                      <span className="text-xs font-black text-emerald-950 font-mono">{quotas.whatsAppBoosterBalance || 0}</span>
+                      <span className="text-[8px] text-emerald-700 block font-bold">♾️ Never Expires</span>
+                    </div>
+                  </div>
+
+                  <p className="text-[10px] text-slate-500 leading-tight">
+                    ⚡ Priority: Pehle plan quota use hoga. Booster balance plan renew hone par naye plan me add ho jayega.
+                  </p>
 
                   {quotas.isWhatsAppGloballyEnabled === false && quotas.whatsAppDisabledNotice && (
                     <p className="text-[10px] text-amber-700 bg-amber-50 p-2 rounded-xl border border-amber-200">
@@ -982,13 +1022,18 @@ export default function SubscriptionPlans() {
                               {isSMS ? <Smartphone className="w-5 h-5" /> : <MessageSquare className="w-5 h-5" />}
                             </div>
                             <div>
-                              <span
-                                className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-full ${
-                                  isSMS ? 'bg-indigo-100 text-indigo-700' : 'bg-emerald-100 text-emerald-700'
-                                }`}
-                              >
-                                {pack.type} Booster
-                              </span>
+                              <div className="flex items-center gap-1.5">
+                                <span
+                                  className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-full ${
+                                    isSMS ? 'bg-indigo-100 text-indigo-700' : 'bg-emerald-100 text-emerald-700'
+                                  }`}
+                                >
+                                  {pack.type} Booster
+                                </span>
+                                <span className="text-[9px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">
+                                  ♾️ Never Expires
+                                </span>
+                              </div>
                               <h4 className="font-black text-sm text-slate-900 mt-0.5">{pack.title}</h4>
                             </div>
                           </div>
