@@ -62,9 +62,11 @@ export default function Dashboard() {
                 {sub?.planName || 'Active Subscription'}
               </span>
               {typeof sub?.daysRemaining === 'number' && (
-                <span className="text-xs font-bold text-emerald-100 flex items-center gap-1">
+                <span className="text-xs font-bold font-mono text-emerald-100 flex items-center gap-1">
                   <Clock className="w-3.5 h-3.5" />
-                  {sub.daysRemaining > 0 ? `${sub.daysRemaining} days left` : 'Expired'}
+                  {sub.daysRemaining > 0
+                    ? (sub.stackedDisplay || (sub.daysRemaining > 30 ? `${sub.daysRemaining - 30}+30 day left` : `${sub.daysRemaining} day left`))
+                    : 'Expired'}
                 </span>
               )}
             </div>

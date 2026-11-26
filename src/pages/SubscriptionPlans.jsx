@@ -170,6 +170,15 @@ export default function SubscriptionPlans() {
   const history = data?.history || [];
   const hasEverHadPlan = history.length > 0 || Boolean(current);
 
+  // Stacked days display e.g. "3+30 day left"
+  const stackedDisplay = current?.stackedDisplay || (
+    typeof daysRemaining === 'number'
+      ? (daysRemaining > 30
+          ? `${daysRemaining - 30}+30 day left`
+          : `${daysRemaining} day left`)
+      : 'Active'
+  );
+
   return (
     <AppLayout
       title="Subscription Plans"
@@ -200,7 +209,7 @@ export default function SubscriptionPlans() {
 
                 {typeof daysRemaining === 'number' && (
                   <span
-                    className={`text-xs font-black px-2.5 py-1 rounded-full border ${
+                    className={`text-xs font-black font-mono px-2.5 py-1 rounded-full border ${
                       daysRemaining > 7
                         ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30'
                         : daysRemaining > 0
@@ -208,7 +217,7 @@ export default function SubscriptionPlans() {
                         : 'bg-rose-500/20 text-rose-300 border-rose-500/40'
                     }`}
                   >
-                    {daysRemaining > 0 ? `${daysRemaining} days left` : 'Expired'}
+                    {daysRemaining > 0 ? stackedDisplay : 'Expired'}
                   </span>
                 )}
               </div>
@@ -241,18 +250,25 @@ export default function SubscriptionPlans() {
                 </div>
               </div>
 
-              {/* Plan Stacking / Renewal Notice */}
+              {/* Stacked Days Display: e.g. 3+30 day left */}
               <div className="mt-3">
-                <div className="p-3 bg-emerald-500/10 border border-emerald-500/25 rounded-2xl flex items-start gap-2.5 text-[11px] text-emerald-200 leading-relaxed">
-                  <Sparkles className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
-                  <div>
-                    <span className="font-bold text-emerald-300 block">
-                      Automatic Plan Stacking Enabled
-                    </span>
-                    <span>
-                      Maan lo aapke paas <strong>3 din</strong> ka free trial ya plan bacha hai aur aap <strong>1 Month</strong> ka plan activate karte hain, to pure <strong>3 Din + 1 Month (33 Din)</strong> add honge. Koi bhi din waste nahi hoga!
-                    </span>
+                <div className="p-3 bg-white/5 border border-white/10 rounded-2xl flex items-center justify-between">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-7 h-7 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0">
+                      <Sparkles className="w-3.5 h-3.5" />
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-slate-400 block font-medium uppercase tracking-wider">
+                        Active Plan Remaining
+                      </span>
+                      <span className="text-xs font-bold text-slate-200">
+                        {current?.planName || 'Plan'}
+                      </span>
+                    </div>
                   </div>
+                  <span className="text-xs font-black font-mono text-emerald-300 bg-emerald-500/20 px-3 py-1.5 rounded-xl border border-emerald-500/30 tracking-wide">
+                    {stackedDisplay}
+                  </span>
                 </div>
               </div>
             </div>
