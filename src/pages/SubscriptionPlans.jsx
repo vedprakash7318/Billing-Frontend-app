@@ -160,10 +160,15 @@ export default function SubscriptionPlans() {
   };
 
   const current = data?.currentSubscription;
-  const canActivate = data?.canActivate;
-  const daysRemaining = data?.daysRemaining;
+  const daysRemaining = typeof data?.daysRemaining === 'number' ? data.daysRemaining : (current?.daysRemaining ?? null);
+  const isExpired = current?.status === 'EXPIRED' || (daysRemaining !== null && daysRemaining <= 0);
+  const hasActivePlan = Boolean(current && (current.status === 'ACTIVE' || current.status === 'TRIAL') && !isExpired);
+  // Strict 7-day rule: Renewal allowed only if no active plan, expired, OR within 7 days of expiry
+  const isRenewalAllowed = !hasActivePlan || (daysRemaining !== null && daysRemaining <= 7);
+  const renewalDaysLeft = daysRemaining && daysRemaining > 7 ? daysRemaining - 7 : 0;
   const plans = data?.availablePlans || [];
   const history = data?.history || [];
+  const hasEverHadPlan = history.length > 0 || Boolean(current);
 
   return (
     <AppLayout
@@ -171,7 +176,7 @@ export default function SubscriptionPlans() {
       subtitle="Store License & Upgrades"
       backTo="/profile"
     >
-      <div className="max-w-6xl mx-auto space-y-5 pb-12">
+      <div className="max-w-6xl mx-auto space-y-4 pb-12">
         {loading ? (
           <div className="py-20 text-center text-xs text-slate-400 animate-pulse">
             Loading subscription details & plans...
@@ -251,6 +256,55 @@ export default function SubscriptionPlans() {
                 </div>
               </div>
             </div>
+
+            {/* Renewal / Expiry Status Banners */}
+            {hasActivePlan && !isRenewalAllowed && (
+              <div className="p-4 bg-slate-900 text-white rounded-3xl flex items-start gap-3 border border-slate-800 shadow-md">
+                <div className="w-9 h-9 rounded-2xl bg-amber-500/20 text-amber-400 flex items-center justify-center shrink-0 mt-0.5">
+                  <Lock className="w-4 h-4" />
+                </div>
+                <div>
+                  <h4 className="text-xs font-bold text-white">
+                    Subscription Active ({daysRemaining} Din Bache Hain)
+                  </h4>
+                  <p className="text-[11px] text-slate-300 mt-0.5 leading-relaxed">
+                    Aapka plan abhi fully active hai. Plan renewal aur switches expiry ke 7 din pehle (<strong>{renewalDaysLeft} din baad</strong>) activate honge. Tab tak plan buttons locked rahenge.
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {hasActivePlan && isRenewalAllowed && (
+              <div className="p-4 bg-amber-500/15 border border-amber-500/30 text-amber-950 rounded-3xl flex items-start gap-3 shadow-xs">
+                <div className="w-9 h-9 rounded-2xl bg-amber-500 text-white flex items-center justify-center shrink-0 mt-0.5 animate-pulse">
+                  <Zap className="w-4 h-4 fill-white" />
+                </div>
+                <div>
+                  <h4 className="text-xs font-bold text-amber-950">
+                    ⚡ Renewal Window Open ({daysRemaining} {daysRemaining === 1 ? 'Din Bacha Hai' : 'Din Bache Hain'})
+                  </h4>
+                  <p className="text-[11px] text-amber-800 mt-0.5 leading-relaxed">
+                    Aapka plan agle 7 dino me expire ho raha hai. Abhi renew karein taaki billing uninterrupted chale. Bache hue din naye plan ke saath add ho jayenge!
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {isExpired && (
+              <div className="p-4 bg-rose-50 border border-rose-200 text-rose-900 rounded-3xl flex items-start gap-3 shadow-xs">
+                <div className="w-9 h-9 rounded-2xl bg-rose-500 text-white flex items-center justify-center shrink-0 mt-0.5">
+                  <AlertCircle className="w-4 h-4" />
+                </div>
+                <div>
+                  <h4 className="text-xs font-bold text-rose-950">
+                    Subscription Expired
+                  </h4>
+                  <p className="text-[11px] text-rose-700 mt-0.5 leading-relaxed">
+                    Aapka subscription expire ho chuka hai. Naya bill banane ya catalog items add karne ke liye kripya niche diye gaye kisi bhi plan ko activate karein.
+                  </p>
+                </div>
+              </div>
+            )}
 
             {/* 2. AVAILABLE PLANS GRID */}
             <div className="space-y-3">
@@ -341,35 +395,64 @@ export default function SubscriptionPlans() {
                           </div>
                         </div>
 
-                        {/* Action Button & Payment Method Badge */}
+                        {/* Action Section with 7-Day Window Rule */}
                         <div className="mt-4 pt-3 border-t border-slate-100 space-y-2">
-                          <button
-                            type="button"
-                            disabled={isActivating}
-                            onClick={() => handleActivatePlan(p)}
-                            className="w-full py-3 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 active:scale-95 text-white text-xs font-black rounded-2xl shadow-md shadow-emerald-600/20 flex items-center justify-center gap-1.5 transition-all disabled:opacity-50 cursor-pointer"
-                          >
-                            {isActivating ? (
-                              <span>Processing with Razorpay...</span>
+                          {isFree ? (
+                            hasEverHadPlan ? (
+                              <div className="w-full py-3 bg-slate-100 text-slate-400 text-xs font-bold rounded-2xl flex items-center justify-center gap-1.5 border border-slate-200/80">
+                                <Lock className="w-3.5 h-3.5" />
+                                <span>Trial Already Used</span>
+                              </div>
                             ) : (
-                              <>
+                              <button
+                                type="button"
+                                disabled={isActivating}
+                                onClick={() => handleActivatePlan(p)}
+                                className="w-full py-3 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 active:scale-95 text-white text-xs font-black rounded-2xl shadow-md shadow-emerald-600/20 flex items-center justify-center gap-1.5 transition-all disabled:opacity-50 cursor-pointer"
+                              >
                                 <Zap className="w-4 h-4 fill-white" />
-                                <span>
-                                  {isFree
-                                    ? 'Activate Free Trial'
-                                    : isCurrent
-                                    ? `Renew via UPI / Razorpay (₹${p.price})`
-                                    : `Pay & Activate (₹${p.price})`}
-                                </span>
-                              </>
-                            )}
-                          </button>
+                                <span>Activate Free Trial</span>
+                              </button>
+                            )
+                          ) : !isRenewalAllowed ? (
+                            isCurrent ? (
+                              <div className="w-full py-3 bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold rounded-2xl flex items-center justify-center gap-1.5 shadow-2xs">
+                                <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                                <span>Currently Active ({daysRemaining} Days Left)</span>
+                              </div>
+                            ) : (
+                              <div className="w-full py-3 bg-slate-100 border border-slate-200 text-slate-400 text-xs font-bold rounded-2xl flex items-center justify-center gap-1.5">
+                                <Lock className="w-3.5 h-3.5" />
+                                <span>Renewal Unlocks in {renewalDaysLeft} Days</span>
+                              </div>
+                            )
+                          ) : (
+                            <>
+                              <button
+                                type="button"
+                                disabled={isActivating}
+                                onClick={() => handleActivatePlan(p)}
+                                className="w-full py-3 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 active:scale-95 text-white text-xs font-black rounded-2xl shadow-md shadow-emerald-600/20 flex items-center justify-center gap-1.5 transition-all disabled:opacity-50 cursor-pointer"
+                              >
+                                {isActivating ? (
+                                  <span>Processing with Razorpay...</span>
+                                ) : (
+                                  <>
+                                    <Zap className="w-4 h-4 fill-white" />
+                                    <span>
+                                      {isCurrent
+                                        ? `Renew via UPI / Razorpay (₹${p.price})`
+                                        : `Pay & Activate (₹${p.price})`}
+                                    </span>
+                                  </>
+                                )}
+                              </button>
 
-                          {!isFree && (
-                            <p className="text-[10px] text-center text-slate-400 font-medium flex items-center justify-center gap-1">
-                              <CreditCard className="w-3 h-3 text-emerald-600" />
-                              <span>UPI (GPay/PhonePe/Paytm), Cards, NetBanking</span>
-                            </p>
+                              <p className="text-[10px] text-center text-slate-400 font-medium flex items-center justify-center gap-1">
+                                <CreditCard className="w-3 h-3 text-emerald-600" />
+                                <span>UPI (GPay/PhonePe/Paytm), Cards, NetBanking</span>
+                              </p>
+                            </>
                           )}
                         </div>
                       </div>
