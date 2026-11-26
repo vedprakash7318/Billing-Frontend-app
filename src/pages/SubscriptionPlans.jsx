@@ -33,6 +33,14 @@ export default function SubscriptionPlans() {
   const [rechargingId, setRechargingId] = useState(null);
   const [boosterTab, setBoosterTab] = useState('ALL'); // ALL | SMS | WHATSAPP
   const [autoPay, setAutoPay] = useState(false);
+  const [autoPayInfo, setAutoPayInfo] = useState({
+    isEnabled: false,
+    status: 'INACTIVE',
+    mandateId: null,
+    method: 'UPI',
+    authorizedAt: null,
+    failureReason: null,
+  });
   const [togglingAutoPay, setTogglingAutoPay] = useState(false);
 
   const fetchSubscription = async () => {
@@ -40,10 +48,19 @@ export default function SubscriptionPlans() {
     try {
       const res = await api.get('/admin/subscription');
       if (res.data?.success) {
-        setData(res.data.data);
-        if (res.data.data?.isAutoPayEnabled !== undefined) {
-          setAutoPay(Boolean(res.data.data.isAutoPayEnabled));
-        }
+        const payload = res.data.data;
+        setData(payload);
+        const ap = payload?.autoPay || {};
+        const isEn = Boolean(payload?.isAutoPayEnabled || ap.isEnabled);
+        setAutoPay(isEn);
+        setAutoPayInfo({
+          isEnabled: isEn,
+          status: ap.status || (isEn ? 'ACTIVE' : 'INACTIVE'),
+          mandateId: ap.mandateId || null,
+          method: ap.method || 'UPI',
+          authorizedAt: ap.authorizedAt || null,
+          failureReason: ap.failureReason || null,
+        });
       }
     } catch (err) {
       console.error(err);
@@ -53,17 +70,105 @@ export default function SubscriptionPlans() {
     }
   };
 
-  const handleToggleAutoPay = async () => {
+  // Real UPI AutoPay Setup via Google Pay / PhonePe / Paytm Mandate
+  const handleSetupAutoPay = async () => {
     setTogglingAutoPay(true);
-    const nextVal = !autoPay;
     try {
-      const res = await api.post('/admin/subscription/toggle-autopay', { enabled: nextVal });
+      const orderRes = await api.post('/admin/subscription/setup-autopay-order');
+      if (!orderRes.data?.success) {
+        throw new Error(orderRes.data?.error || 'Failed to initialize UPI AutoPay mandate');
+      }
+
+      const { orderId, amount, currency, keyId, store, plan } = orderRes.data;
+
+      if (!window.Razorpay) {
+        throw new Error('Razorpay payment gateway failed to load. Please refresh.');
+      }
+
+      const options = {
+        key: keyId || import.meta.env.VITE_RAZORPAY_KEY_ID || 'rzp_live_HGCsLV5PjSYo8F',
+        amount,
+        currency: currency || 'INR',
+        name: store?.name || 'BillFlow Store',
+        description: `UPI AutoPay Authorization for ${plan?.name || 'Subscription'}`,
+        image: 'https://cdn-icons-png.flaticon.com/512/3135/3135715.png',
+        order_id: orderId,
+        prefill: {
+          name: store?.name || 'Store Merchant',
+          email: store?.email || '',
+          contact: store?.phone || '',
+        },
+        theme: {
+          color: '#4f46e5',
+        },
+        modal: {
+          ondismiss: () => {
+            setTogglingAutoPay(false);
+          },
+        },
+        handler: async (response) => {
+          try {
+            const verifyRes = await api.post('/admin/subscription/verify-autopay-mandate', {
+              razorpay_order_id: response.razorpay_order_id,
+              razorpay_payment_id: response.razorpay_payment_id,
+              razorpay_signature: response.razorpay_signature,
+              method: 'UPI (Google Pay / PhonePe)',
+            });
+
+            if (verifyRes.data?.success) {
+              toastSuccess(verifyRes.data.message || '🎉 Google Pay / UPI AutoPay mandate authorized successfully!');
+              setAutoPay(true);
+              setAutoPayInfo(verifyRes.data.data || { isEnabled: true, status: 'ACTIVE' });
+              fetchSubscription();
+            } else {
+              throw new Error(verifyRes.data?.error || 'Mandate verification failed');
+            }
+          } catch (verifyErr) {
+            toastError(verifyErr.response?.data?.error || verifyErr.message || 'Failed to verify UPI AutoPay mandate');
+          } finally {
+            setTogglingAutoPay(false);
+          }
+        },
+      };
+
+      const rzpInstance = new window.Razorpay(options);
+      rzpInstance.on('payment.failed', function (resp) {
+        toastError(resp.error?.description || 'UPI AutoPay authorization was cancelled or failed.');
+        setTogglingAutoPay(false);
+      });
+
+      rzpInstance.open();
+    } catch (err) {
+      toastError(err.response?.data?.error || err.message || 'Unable to start AutoPay setup');
+      setTogglingAutoPay(false);
+    }
+  };
+
+  // Cancel UPI AutoPay Mandate
+  const handleCancelAutoPay = async () => {
+    const ok = await confirmDialog({
+      title: 'Cancel UPI AutoPay Mandate?',
+      message: 'Kya aap sure hain ki AutoPay mandate cancel karna chahte hain? Iske baad expiry par auto-debit nahi hoga aur store subscription manually renew karna hoga.',
+      confirmText: 'Yes, Cancel AutoPay',
+      cancelText: 'Keep Active',
+      isDestructive: true,
+    });
+
+    if (!ok) return;
+
+    setTogglingAutoPay(true);
+    try {
+      const res = await api.post('/admin/subscription/cancel-autopay', {
+        reason: 'Cancelled by store merchant via dashboard',
+      });
       if (res.data?.success) {
-        setAutoPay(nextVal);
-        toastSuccess(res.data.message || (nextVal ? '⚡ AutoPay enabled!' : 'AutoPay disabled.'));
+        toastSuccess('AutoPay mandate cancelled successfully.');
+        setAutoPay(false);
+        setAutoPayInfo({ isEnabled: false, status: 'CANCELLED', failureReason: 'Cancelled by store merchant' });
+        fetchSubscription();
       }
     } catch (err) {
-      toastError(err.response?.data?.error || 'Failed to update AutoPay');
+      toastError(err.response?.data?.error || 'Failed to cancel AutoPay mandate');
     } finally {
       setTogglingAutoPay(false);
     }
@@ -267,8 +372,8 @@ export default function SubscriptionPlans() {
   const daysRemaining = typeof data?.daysRemaining === 'number' ? data.daysRemaining : (current?.daysRemaining ?? null);
   const isExpired = current?.status === 'EXPIRED' || (daysRemaining !== null && daysRemaining <= 0);
   const hasActivePaidPlan = Boolean(current && current.status === 'ACTIVE' && !isTrial && !isExpired);
-  // Free trial users can ALWAYS buy/upgrade to paid plans! Only active paid plans wait for the 7-day renewal window.
-  const isRenewalAllowed = isTrial || !hasActivePaidPlan || (daysRemaining !== null && daysRemaining <= 7);
+  // Merchants can ALWAYS renew, add days, or upgrade; existing days stack cleanly!
+  const isRenewalAllowed = true;
   const renewalDaysLeft = daysRemaining && daysRemaining > 7 ? daysRemaining - 7 : 0;
   const plans = data?.availablePlans || [];
   const history = data?.history || [];
@@ -520,71 +625,116 @@ export default function SubscriptionPlans() {
               </div>
             )}
 
-            {hasActivePaidPlan && !isRenewalAllowed && (
-              <div className="p-4 bg-slate-900 text-white rounded-3xl flex items-start gap-3 border border-slate-800 shadow-md">
-                <div className="w-9 h-9 rounded-2xl bg-amber-500/20 text-amber-400 flex items-center justify-center shrink-0 mt-0.5">
-                  <Lock className="w-4 h-4" />
-                </div>
-                <div>
-                  <h4 className="text-xs font-bold text-white">
-                    Subscription Active ({daysRemaining} Din Bache Hain)
-                  </h4>
-                  <p className="text-[11px] text-slate-300 mt-0.5 leading-relaxed">
-                    Aapka plan abhi fully active hai. Plan renewal aur switches expiry ke 7 din pehle (<strong>{renewalDaysLeft} din baad</strong>) activate honge. Tab tak plan buttons locked rahenge.
-                  </p>
-                </div>
-              </div>
-            )}
-
-            {hasActivePaidPlan && isRenewalAllowed && (
+            {/* Expiry Warning Banner (Shown only when 7 or fewer days left) */}
+            {hasActivePaidPlan && daysRemaining !== null && daysRemaining <= 7 && (
               <div className="p-4 bg-amber-500/15 border border-amber-500/30 text-amber-950 rounded-3xl flex items-start gap-3 shadow-xs">
                 <div className="w-9 h-9 rounded-2xl bg-amber-500 text-white flex items-center justify-center shrink-0 mt-0.5 animate-pulse">
                   <Zap className="w-4 h-4 fill-white" />
                 </div>
                 <div>
                   <h4 className="text-xs font-bold text-amber-950">
-                    ⚡ Renewal Window Open ({daysRemaining} {daysRemaining === 1 ? 'Din Bacha Hai' : 'Din Bache Hain'})
+                    ⚡ Expiry Near ({daysRemaining} {daysRemaining === 1 ? 'Din Bacha Hai' : 'Din Bache Hain'})
                   </h4>
                   <p className="text-[11px] text-amber-800 mt-0.5 leading-relaxed">
-                    Aapka plan agle 7 dino me expire ho raha hai. Abhi renew karein taaki billing uninterrupted chale. Bache hue din naye plan ke saath add ho jayenge!
+                    Aapka plan jald expire hone wala hai. Abhi renew karein taaki billing uninterrupted chale. Bache hue din naye plan ke saath add ho jayenge!
                   </p>
                 </div>
               </div>
             )}
 
-            {/* UPI AutoPay & Recurring Renewal Switch Card */}
-            <div className="bg-white rounded-3xl p-4 sm:p-5 border border-slate-200/90 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <div className="flex items-start gap-3">
-                <div className={`p-2.5 rounded-2xl ${autoPay ? 'bg-indigo-50 text-indigo-600' : 'bg-slate-100 text-slate-500'}`}>
-                  <RefreshCw className={`w-5 h-5 ${togglingAutoPay ? 'animate-spin' : ''}`} />
-                </div>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <h3 className="text-xs font-black uppercase tracking-wider text-slate-900">
-                      UPI AutoPay & Recurring Renewal
-                    </h3>
-                    <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-full ${autoPay ? 'bg-indigo-100 text-indigo-700 border border-indigo-200' : 'bg-slate-100 text-slate-600'}`}>
-                      {autoPay ? '⚡ AutoPay Active' : 'AutoPay Off'}
-                    </span>
+            {/* UPI AutoPay & Recurring Mandate Card (Google Pay / PhonePe / Paytm) */}
+            <div className="bg-white rounded-3xl p-4 sm:p-5 border border-slate-200/90 shadow-xs space-y-3.5">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3.5">
+                <div className="flex items-start gap-3">
+                  <div className={`p-2.5 rounded-2xl shrink-0 ${
+                    autoPayInfo.status === 'ACTIVE'
+                      ? 'bg-emerald-50 text-emerald-600'
+                      : autoPayInfo.status === 'CANCELLED' || autoPayInfo.status === 'PAYMENT_FAILED'
+                      ? 'bg-amber-50 text-amber-600'
+                      : 'bg-indigo-50 text-indigo-600'
+                  }`}>
+                    <RefreshCw className={`w-5 h-5 ${togglingAutoPay ? 'animate-spin' : ''}`} />
                   </div>
-                  <p className="text-[11px] text-slate-500 font-medium mt-0.5">
-                    Plan expire hone par software automatically renew ho jayega taaki store billing bina kisi interruption ke chalti rahe.
-                  </p>
+                  <div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <h3 className="text-xs font-black uppercase tracking-wider text-slate-900">
+                        UPI AutoPay Mandate
+                      </h3>
+                      {autoPayInfo.status === 'ACTIVE' ? (
+                        <span className="text-[9px] font-black uppercase px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200 flex items-center gap-1">
+                          <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                          <span>Active (Google Pay / PhonePe)</span>
+                        </span>
+                      ) : autoPayInfo.status === 'CANCELLED' ? (
+                        <span className="text-[9px] font-black uppercase px-2.5 py-0.5 rounded-full bg-rose-100 text-rose-800 border border-rose-200">
+                          ⚠️ Mandate Cancelled
+                        </span>
+                      ) : autoPayInfo.status === 'PAYMENT_FAILED' ? (
+                        <span className="text-[9px] font-black uppercase px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-200">
+                          ⚠️ Payment Failed on Due Date
+                        </span>
+                      ) : (
+                        <span className="text-[9px] font-black uppercase px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200">
+                          AutoPay Off
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Supported Apps Chips */}
+                    <div className="flex flex-wrap items-center gap-1 mt-1.5">
+                      <span className="text-[10px] font-bold text-slate-400">Supported:</span>
+                      <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-slate-100 text-slate-700">Google Pay</span>
+                      <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-slate-100 text-slate-700">PhonePe</span>
+                      <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-slate-100 text-slate-700">Paytm</span>
+                      <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-slate-100 text-slate-700">BHIM UPI</span>
+                    </div>
+
+                    <p className="text-[11px] text-slate-500 font-medium mt-1 leading-relaxed">
+                      {autoPayInfo.status === 'ACTIVE'
+                        ? 'Aapka UPI AutoPay mandate active hai. Plan expiry ke din automatically renewal attempt hoga. Aap ise Google Pay / PhonePe se ya yahan se kabhi bhi cancel kar sakte hain.'
+                        : autoPayInfo.status === 'CANCELLED'
+                        ? 'AutoPay mandate cancel ho chuka hai. Plan expiry par koi auto-debit nahi hoga; billing continue rakhne ke liye manual renewal karein.'
+                        : 'Plan expire hone par software automatically renew ho sake iske liye Google Pay ya PhonePe ke jariye UPI AutoPay mandate on karein.'}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Mandate Action Button */}
+                <div className="shrink-0 flex items-center gap-2 self-start sm:self-center">
+                  {autoPayInfo.status === 'ACTIVE' ? (
+                    <button
+                      type="button"
+                      disabled={togglingAutoPay}
+                      onClick={handleCancelAutoPay}
+                      className="px-3.5 py-2 rounded-xl text-xs font-bold text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200 transition-all cursor-pointer flex items-center gap-1.5 active:scale-95"
+                    >
+                      <span>Cancel AutoPay</span>
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      disabled={togglingAutoPay}
+                      onClick={handleSetupAutoPay}
+                      className="px-4 py-2.5 rounded-xl text-xs font-black text-white bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 shadow-md shadow-indigo-600/20 active:scale-95 transition-all cursor-pointer flex items-center gap-2"
+                    >
+                      <Zap className="w-3.5 h-3.5 fill-white" />
+                      <span>{togglingAutoPay ? 'Connecting...' : autoPayInfo.status === 'CANCELLED' ? 'Re-enable AutoPay' : 'Set up UPI AutoPay'}</span>
+                    </button>
+                  )}
                 </div>
               </div>
 
-              <button
-                type="button"
-                disabled={togglingAutoPay}
-                onClick={handleToggleAutoPay}
-                className={`self-start sm:self-auto px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-all cursor-pointer ${
-                  autoPay
-                    ? 'bg-indigo-600 text-white hover:bg-indigo-700 shadow-md shadow-indigo-600/20'
-                    : 'bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200'
-                }`}
-              >
-                <span>{togglingAutoPay ? 'Updating...' : autoPay ? 'AutoPay Enabled ✓' : 'Enable AutoPay'}</span>
-              </button>
+              {/* Strict Payment Receipt Rules & Policy */}
+              <div className="bg-slate-50 rounded-2xl p-3 border border-slate-200/80 text-[11px] text-slate-600 space-y-1">
+                <div className="flex items-center gap-1.5 font-bold text-slate-800">
+                  <ShieldCheck className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
+                  <span>Strict Payment & Cancellation Protection Rules:</span>
+                </div>
+                <ul className="list-disc list-inside space-y-0.5 text-[10px] text-slate-500 pl-1 leading-normal">
+                  <li><strong>Payment Receive Guarantee:</strong> AutoPay on hone ke baad bhi jab tak due date par actual payment hamare paas verify nahi hoti, tab tak plan renew nahi hoga.</li>
+                  <li><strong>External Cancellation:</strong> Agar aap Google Pay ya bank app se mandate cancel karte hain, to mandate automatically band ho jayega aur bina payment ke koi extension nahi milega.</li>
+                </ul>
+              </div>
             </div>
 
             {isExpired && (
@@ -625,7 +775,7 @@ export default function SubscriptionPlans() {
                   No subscription plans available currently. Please contact Super Admin.
                 </div>
               ) : (
-                <div className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
                   {plans.map((p) => {
                     const isCurrent = current?.planId === (p.id || p._id);
                     const isActivating = activatingId === (p.id || p._id);
@@ -711,25 +861,17 @@ export default function SubscriptionPlans() {
                                 <span>Activate Free Trial</span>
                               </button>
                             )
-                          ) : !isRenewalAllowed ? (
-                            isCurrent ? (
-                              <div className="w-full py-3 bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold rounded-2xl flex items-center justify-center gap-1.5 shadow-2xs">
-                                <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                                <span>Currently Active ({daysRemaining} Days Left)</span>
-                              </div>
-                            ) : (
-                              <div className="w-full py-3 bg-slate-100 border border-slate-200 text-slate-400 text-xs font-bold rounded-2xl flex items-center justify-center gap-1.5">
-                                <Lock className="w-3.5 h-3.5" />
-                                <span>Renewal Unlocks in {renewalDaysLeft} Days</span>
-                              </div>
-                            )
                           ) : (
                             <>
                               <button
                                 type="button"
                                 disabled={isActivating}
                                 onClick={() => handleActivatePlan(p)}
-                                className="w-full py-3 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 active:scale-95 text-white text-xs font-black rounded-2xl shadow-md shadow-emerald-600/20 flex items-center justify-center gap-1.5 transition-all disabled:opacity-50 cursor-pointer"
+                                className={`w-full py-3 text-white text-xs font-black rounded-2xl shadow-md active:scale-95 flex items-center justify-center gap-1.5 transition-all disabled:opacity-50 cursor-pointer ${
+                                  isCurrent
+                                    ? 'bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 shadow-emerald-600/20'
+                                    : 'bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 shadow-indigo-600/20'
+                                }`}
                               >
                                 {isActivating ? (
                                   <span>Processing with Razorpay...</span>
@@ -738,10 +880,10 @@ export default function SubscriptionPlans() {
                                     <Zap className="w-4 h-4 fill-white" />
                                     <span>
                                       {isCurrent
-                                        ? `Renew via UPI / Razorpay (₹${p.price})`
+                                        ? `Renew / Add Days (₹${p.price})`
                                         : isTrial
                                         ? `Upgrade to Plan (₹${p.price})`
-                                        : `Pay & Activate (₹${p.price})`}
+                                        : `Switch to Plan (₹${p.price})`}
                                     </span>
                                   </>
                                 )}
@@ -749,7 +891,7 @@ export default function SubscriptionPlans() {
 
                               <p className="text-[10px] text-center text-slate-400 font-medium flex items-center justify-center gap-1">
                                 <CreditCard className="w-3 h-3 text-emerald-600" />
-                                <span>UPI (GPay/PhonePe/Paytm), Cards, NetBanking</span>
+                                <span>{isCurrent ? '⚡ Days stacked: Remaining din waste nahi honge' : 'Instant Activation via UPI / Cards'}</span>
                               </p>
                             </>
                           )}
