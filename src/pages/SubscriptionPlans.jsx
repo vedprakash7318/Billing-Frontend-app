@@ -32,6 +32,8 @@ export default function SubscriptionPlans() {
   const [activatingId, setActivatingId] = useState(null);
   const [rechargingId, setRechargingId] = useState(null);
   const [boosterTab, setBoosterTab] = useState('ALL'); // ALL | SMS | WHATSAPP
+  const [autoPay, setAutoPay] = useState(false);
+  const [togglingAutoPay, setTogglingAutoPay] = useState(false);
 
   const fetchSubscription = async () => {
     setLoading(true);
@@ -39,12 +41,31 @@ export default function SubscriptionPlans() {
       const res = await api.get('/admin/subscription');
       if (res.data?.success) {
         setData(res.data.data);
+        if (res.data.data?.isAutoPayEnabled !== undefined) {
+          setAutoPay(Boolean(res.data.data.isAutoPayEnabled));
+        }
       }
     } catch (err) {
       console.error(err);
       toastError(err.response?.data?.error || 'Failed to load subscription details');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleToggleAutoPay = async () => {
+    setTogglingAutoPay(true);
+    const nextVal = !autoPay;
+    try {
+      const res = await api.post('/admin/subscription/toggle-autopay', { enabled: nextVal });
+      if (res.data?.success) {
+        setAutoPay(nextVal);
+        toastSuccess(res.data.message || (nextVal ? '⚡ AutoPay enabled!' : 'AutoPay disabled.'));
+      }
+    } catch (err) {
+      toastError(err.response?.data?.error || 'Failed to update AutoPay');
+    } finally {
+      setTogglingAutoPay(false);
     }
   };
 
@@ -119,6 +140,7 @@ export default function SubscriptionPlans() {
         notes: {
           planId: plan.id || plan._id,
           planName: plan.name,
+          autoPay: autoPay ? 'YES' : 'NO',
         },
         theme: {
           color: '#10b981', // Emerald green
@@ -136,6 +158,7 @@ export default function SubscriptionPlans() {
               razorpay_payment_id: response.razorpay_payment_id,
               razorpay_signature: response.razorpay_signature,
               planId: plan.id || plan._id,
+              isAutoPayEnabled: autoPay,
             });
 
             if (verifyRes.data?.success) {
@@ -240,11 +263,12 @@ export default function SubscriptionPlans() {
   };
 
   const current = data?.currentSubscription;
+  const isTrial = current?.status === 'TRIAL' || current?.paymentStatus === 'FREE' || current?.planType === 'FREE_TRIAL';
   const daysRemaining = typeof data?.daysRemaining === 'number' ? data.daysRemaining : (current?.daysRemaining ?? null);
   const isExpired = current?.status === 'EXPIRED' || (daysRemaining !== null && daysRemaining <= 0);
-  const hasActivePlan = Boolean(current && (current.status === 'ACTIVE' || current.status === 'TRIAL') && !isExpired);
-  // Strict 7-day rule: Renewal allowed only if no active plan, expired, OR within 7 days of expiry
-  const isRenewalAllowed = !hasActivePlan || (daysRemaining !== null && daysRemaining <= 7);
+  const hasActivePaidPlan = Boolean(current && current.status === 'ACTIVE' && !isTrial && !isExpired);
+  // Free trial users can ALWAYS buy/upgrade to paid plans! Only active paid plans wait for the 7-day renewal window.
+  const isRenewalAllowed = isTrial || !hasActivePaidPlan || (daysRemaining !== null && daysRemaining <= 7);
   const renewalDaysLeft = daysRemaining && daysRemaining > 7 ? daysRemaining - 7 : 0;
   const plans = data?.availablePlans || [];
   const history = data?.history || [];
@@ -480,7 +504,23 @@ export default function SubscriptionPlans() {
             </div>
 
             {/* Renewal / Expiry Status Banners */}
-            {hasActivePlan && !isRenewalAllowed && (
+            {isTrial && (
+              <div className="p-4 bg-gradient-to-r from-emerald-500/15 to-teal-500/15 border border-emerald-500/30 text-emerald-950 rounded-3xl flex items-start gap-3 shadow-xs">
+                <div className="w-9 h-9 rounded-2xl bg-emerald-600 text-white flex items-center justify-center shrink-0 mt-0.5 shadow-sm">
+                  <Sparkles className="w-4 h-4" />
+                </div>
+                <div>
+                  <h4 className="text-xs font-black text-emerald-950">
+                    🎉 Free Trial Active ({daysRemaining} {daysRemaining === 1 ? 'Din Bacha Hai' : 'Din Bache Hain'}) • Buy Plan Open
+                  </h4>
+                  <p className="text-[11px] text-emerald-800 mt-0.5 leading-relaxed font-medium">
+                    Aap free trial ke dauran kabhi bhi kisi bhi Paid Plan ko buy kar sakte hain. Aapke bache hue {daysRemaining} trial din naye plan me pure ke pure add ho jayenge (Koi din waste nahi hoga)!
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {hasActivePaidPlan && !isRenewalAllowed && (
               <div className="p-4 bg-slate-900 text-white rounded-3xl flex items-start gap-3 border border-slate-800 shadow-md">
                 <div className="w-9 h-9 rounded-2xl bg-amber-500/20 text-amber-400 flex items-center justify-center shrink-0 mt-0.5">
                   <Lock className="w-4 h-4" />
@@ -496,7 +536,7 @@ export default function SubscriptionPlans() {
               </div>
             )}
 
-            {hasActivePlan && isRenewalAllowed && (
+            {hasActivePaidPlan && isRenewalAllowed && (
               <div className="p-4 bg-amber-500/15 border border-amber-500/30 text-amber-950 rounded-3xl flex items-start gap-3 shadow-xs">
                 <div className="w-9 h-9 rounded-2xl bg-amber-500 text-white flex items-center justify-center shrink-0 mt-0.5 animate-pulse">
                   <Zap className="w-4 h-4 fill-white" />
@@ -511,6 +551,41 @@ export default function SubscriptionPlans() {
                 </div>
               </div>
             )}
+
+            {/* UPI AutoPay & Recurring Renewal Switch Card */}
+            <div className="bg-white rounded-3xl p-4 sm:p-5 border border-slate-200/90 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="flex items-start gap-3">
+                <div className={`p-2.5 rounded-2xl ${autoPay ? 'bg-indigo-50 text-indigo-600' : 'bg-slate-100 text-slate-500'}`}>
+                  <RefreshCw className={`w-5 h-5 ${togglingAutoPay ? 'animate-spin' : ''}`} />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-xs font-black uppercase tracking-wider text-slate-900">
+                      UPI AutoPay & Recurring Renewal
+                    </h3>
+                    <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-full ${autoPay ? 'bg-indigo-100 text-indigo-700 border border-indigo-200' : 'bg-slate-100 text-slate-600'}`}>
+                      {autoPay ? '⚡ AutoPay Active' : 'AutoPay Off'}
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-500 font-medium mt-0.5">
+                    Plan expire hone par software automatically renew ho jayega taaki store billing bina kisi interruption ke chalti rahe.
+                  </p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                disabled={togglingAutoPay}
+                onClick={handleToggleAutoPay}
+                className={`self-start sm:self-auto px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-all cursor-pointer ${
+                  autoPay
+                    ? 'bg-indigo-600 text-white hover:bg-indigo-700 shadow-md shadow-indigo-600/20'
+                    : 'bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200'
+                }`}
+              >
+                <span>{togglingAutoPay ? 'Updating...' : autoPay ? 'AutoPay Enabled ✓' : 'Enable AutoPay'}</span>
+              </button>
+            </div>
 
             {isExpired && (
               <div className="p-4 bg-rose-50 border border-rose-200 text-rose-900 rounded-3xl flex items-start gap-3 shadow-xs">
@@ -664,6 +739,8 @@ export default function SubscriptionPlans() {
                                     <span>
                                       {isCurrent
                                         ? `Renew via UPI / Razorpay (₹${p.price})`
+                                        : isTrial
+                                        ? `Upgrade to Plan (₹${p.price})`
                                         : `Pay & Activate (₹${p.price})`}
                                     </span>
                                   </>
