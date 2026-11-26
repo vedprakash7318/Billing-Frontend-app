@@ -55,6 +55,13 @@ export default function Checkout() {
       .then((res) => {
         if (res.data?.data?.quotas) {
           setQuotas(res.data.data.quotas);
+          // Auto-fallback if active choice is disabled
+          if (res.data.data.quotas.isSmsGloballyEnabled === false && deliveryMethod === 'SMS') {
+            setDeliveryMethod('PRINT');
+          }
+          if (res.data.data.quotas.isWhatsAppGloballyEnabled === false && deliveryMethod === 'WHATSAPP') {
+            setDeliveryMethod('PRINT');
+          }
         }
       })
       .catch(() => {});
@@ -445,58 +452,78 @@ export default function Checkout() {
               Receipt Action (Choose 1)
             </label>
             <div className="grid grid-cols-3 gap-2">
+              {/* SMS Button */}
               <button
                 type="button"
+                disabled={quotas?.isSmsGloballyEnabled === false}
                 onClick={() => setDeliveryMethod('SMS')}
-                className={`py-3 px-2 rounded-2xl border text-xs font-bold flex flex-col items-center gap-1 transition-all active:scale-95 ${
-                  deliveryMethod === 'SMS'
-                    ? 'bg-indigo-600 text-white border-indigo-600 shadow-lg shadow-indigo-600/25 ring-2 ring-indigo-300'
-                    : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
+                className={`py-3 px-2 rounded-2xl border text-xs font-bold flex flex-col items-center gap-1 transition-all ${
+                  quotas?.isSmsGloballyEnabled === false
+                    ? 'opacity-60 cursor-not-allowed bg-slate-100/90 border-dashed border-amber-300 text-slate-400'
+                    : deliveryMethod === 'SMS'
+                    ? 'bg-indigo-600 text-white border-indigo-600 shadow-lg shadow-indigo-600/25 ring-2 ring-indigo-300 active:scale-95'
+                    : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100 active:scale-95'
                 }`}
               >
-                <div className={`p-1.5 rounded-xl ${deliveryMethod === 'SMS' ? 'bg-white/20' : 'bg-indigo-50 text-indigo-600'}`}>
+                <div className={`p-1.5 rounded-xl ${
+                  quotas?.isSmsGloballyEnabled === false
+                    ? 'bg-amber-100 text-amber-700'
+                    : deliveryMethod === 'SMS'
+                    ? 'bg-white/20'
+                    : 'bg-indigo-50 text-indigo-600'
+                }`}>
                   <MessageSquare className="w-4 h-4" />
                 </div>
                 <span>SMS Link</span>
                 {quotas && (
-                  <span className={`text-[9px] font-mono font-black px-1.5 py-0.2 rounded ${
+                  <span className={`text-[9px] font-mono font-black px-1.5 py-0.5 rounded ${
                     quotas.isSmsGloballyEnabled === false
-                      ? 'bg-amber-100 text-amber-800'
+                      ? 'bg-amber-100 text-amber-800 border border-amber-300'
                       : quotas.smsBalance <= 0
                       ? 'bg-rose-100 text-rose-800'
                       : deliveryMethod === 'SMS'
                       ? 'bg-white/20 text-white'
                       : 'bg-indigo-50 text-indigo-700'
                   }`}>
-                    {quotas.isSmsGloballyEnabled === false ? 'Paused' : `${quotas.smsBalance} left`}
+                    {quotas.isSmsGloballyEnabled === false ? '⚠️ Temp Band' : `${quotas.smsBalance} left`}
                   </span>
                 )}
               </button>
 
+              {/* WhatsApp Button */}
               <button
                 type="button"
+                disabled={quotas?.isWhatsAppGloballyEnabled === false}
                 onClick={() => setDeliveryMethod('WHATSAPP')}
-                className={`py-3 px-2 rounded-2xl border text-xs font-bold flex flex-col items-center gap-1 transition-all active:scale-95 ${
-                  deliveryMethod === 'WHATSAPP'
-                    ? 'bg-emerald-600 text-white border-emerald-600 shadow-lg shadow-emerald-600/25 ring-2 ring-emerald-300'
-                    : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
+                className={`py-3 px-2 rounded-2xl border text-xs font-bold flex flex-col items-center gap-1 transition-all ${
+                  quotas?.isWhatsAppGloballyEnabled === false
+                    ? 'opacity-60 cursor-not-allowed bg-slate-100/90 border-dashed border-amber-300 text-slate-400'
+                    : deliveryMethod === 'WHATSAPP'
+                    ? 'bg-emerald-600 text-white border-emerald-600 shadow-lg shadow-emerald-600/25 ring-2 ring-emerald-300 active:scale-95'
+                    : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100 active:scale-95'
                 }`}
               >
-                <div className={`p-1.5 rounded-xl ${deliveryMethod === 'WHATSAPP' ? 'bg-white/20' : 'bg-emerald-50 text-emerald-600'}`}>
+                <div className={`p-1.5 rounded-xl ${
+                  quotas?.isWhatsAppGloballyEnabled === false
+                    ? 'bg-amber-100 text-amber-700'
+                    : deliveryMethod === 'WHATSAPP'
+                    ? 'bg-white/20'
+                    : 'bg-emerald-50 text-emerald-600'
+                }`}>
                   <MessageCircle className="w-4 h-4" />
                 </div>
                 <span>WhatsApp</span>
                 {quotas && (
-                  <span className={`text-[9px] font-mono font-black px-1.5 py-0.2 rounded ${
+                  <span className={`text-[9px] font-mono font-black px-1.5 py-0.5 rounded ${
                     quotas.isWhatsAppGloballyEnabled === false
-                      ? 'bg-amber-100 text-amber-800'
+                      ? 'bg-amber-100 text-amber-800 border border-amber-300'
                       : quotas.whatsAppBalance <= 0
                       ? 'bg-rose-100 text-rose-800'
                       : deliveryMethod === 'WHATSAPP'
                       ? 'bg-white/20 text-white'
                       : 'bg-emerald-50 text-emerald-700'
                   }`}>
-                    {quotas.isWhatsAppGloballyEnabled === false ? 'Paused' : `${quotas.whatsAppBalance} left`}
+                    {quotas.isWhatsAppGloballyEnabled === false ? '⚠️ Temp Band' : `${quotas.whatsAppBalance} left`}
                   </span>
                 )}
               </button>

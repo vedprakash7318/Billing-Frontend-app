@@ -405,8 +405,8 @@ export default function SubscriptionPlans() {
                       <span className="text-xs font-bold text-slate-800">SMS Receipts</span>
                     </div>
                     {quotas.isSmsGloballyEnabled === false ? (
-                      <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-200">
-                        Paused
+                      <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-300">
+                        ⚠️ Temp Band Hai
                       </span>
                     ) : (
                       <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
@@ -446,8 +446,8 @@ export default function SubscriptionPlans() {
                       <span className="text-xs font-bold text-slate-800">WhatsApp Receipts</span>
                     </div>
                     {quotas.isWhatsAppGloballyEnabled === false ? (
-                      <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-200">
-                        Paused
+                      <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-300">
+                        ⚠️ Temp Band Hai
                       </span>
                     ) : (
                       <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
@@ -738,6 +738,9 @@ export default function SubscriptionPlans() {
                   {filteredBoosterPacks.map((pack) => {
                     const isRecharging = rechargingId === (pack.id || pack._id);
                     const isSMS = pack.type === 'SMS';
+                    const isPackServicePaused = isSMS
+                      ? quotas.isSmsGloballyEnabled === false
+                      : quotas.isWhatsAppGloballyEnabled === false;
 
                     return (
                       <div
@@ -789,16 +792,24 @@ export default function SubscriptionPlans() {
                         <div className="mt-4 pt-3 border-t border-slate-100">
                           <button
                             type="button"
-                            disabled={isRecharging}
+                            disabled={isRecharging || isPackServicePaused}
                             onClick={() => handleRechargePack(pack)}
-                            className={`w-full py-2.5 text-white text-xs font-black rounded-xl shadow-md active:scale-95 transition-all flex items-center justify-center gap-1.5 disabled:opacity-50 cursor-pointer ${
-                              isSMS
-                                ? 'bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 shadow-indigo-600/20'
-                                : 'bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 shadow-emerald-600/20'
+                            className={`w-full py-2.5 text-xs font-black rounded-xl shadow-md transition-all flex items-center justify-center gap-1.5 ${
+                              isPackServicePaused
+                                ? 'bg-amber-100 text-amber-800 border border-amber-300 opacity-70 cursor-not-allowed'
+                                : isSMS
+                                ? 'bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 text-white shadow-indigo-600/20 active:scale-95 cursor-pointer disabled:opacity-50'
+                                : 'bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white shadow-emerald-600/20 active:scale-95 cursor-pointer disabled:opacity-50'
                             }`}
                           >
-                            <Zap className="w-3.5 h-3.5 fill-white" />
-                            <span>{isRecharging ? 'Opening Razorpay...' : `Recharge Pack (₹${pack.price})`}</span>
+                            <Zap className="w-3.5 h-3.5 fill-current" />
+                            <span>
+                              {isPackServicePaused
+                                ? '⚠️ Service Temp Band Hai'
+                                : isRecharging
+                                ? 'Opening Razorpay...'
+                                : `Recharge Pack (₹${pack.price})`}
+                            </span>
                           </button>
                         </div>
                       </div>
