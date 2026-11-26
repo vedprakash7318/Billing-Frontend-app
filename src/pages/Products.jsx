@@ -160,7 +160,7 @@ export default function Products() {
             </Link>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+          <div className="space-y-3">
             {products.map((p) => (
               <div
                 key={p.id || p._id}

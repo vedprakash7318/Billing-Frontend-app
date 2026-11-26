@@ -58,27 +58,44 @@
 
 /* Camera Barcode Scanner Viewport Fix (Prevents duplicate video/canvas rendering) */
 #barcode-reader-container canvas,
-[id^="barcode-reader"] canvas {
+[id^="barcode-reader"] canvas,
+#qr-canvas {
   display: none !important;
   visibility: hidden !important;
   height: 0 !important;
   width: 0 !important;
   opacity: 0 !important;
   pointer-events: none !important;
+  position: absolute !important;
 }
 
-#barcode-reader-container video,
+[id^="barcode-reader"] {
+  position: relative !important;
+  overflow: hidden !important;
+  width: 100% !important;
+  height: 260px !important;
+  border-radius: 1rem !important;
+}
+
 [id^="barcode-reader"] video {
+  position: absolute !important;
+  top: 0 !important;
+  left: 0 !important;
   width: 100% !important;
   height: 100% !important;
-  max-height: 280px !important;
+  max-height: 260px !important;
   object-fit: cover !important;
   border-radius: 1rem !important;
 }
 
-#barcode-reader-container video:not(:first-of-type),
-[id^="barcode-reader"] video:not(:first-of-type) {
+/* Any second or subsequent video tag is completely hidden */
+[id^="barcode-reader"] video ~ video,
+[id^="barcode-reader"] video:not(:first-of-type),
+[id^="barcode-reader"] div ~ div video {
   display: none !important;
+  visibility: hidden !important;
+  height: 0 !important;
+  width: 0 !important;
 }
 
 /* ========================================================================= */

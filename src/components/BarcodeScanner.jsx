@@ -10,18 +10,46 @@ export default function BarcodeScanner({
   continuous = false,
 }) {
   const scannerRef = useRef(null);
+  const onScanRef = useRef(onScan);
+  const onCloseRef = useRef(onClose);
   const lastScannedRef = useRef({ code: '', time: 0 });
   const [error, setError] = useState('');
   const [starting, setStarting] = useState(true);
   const [lastScanned, setLastScanned] = useState('');
+
+  // Keep latest callbacks without triggering re-runs
+  useEffect(() => {
+    onScanRef.current = onScan;
+    onCloseRef.current = onClose;
+  });
 
   // Unique container ID so re-mounts never share DOM nodes
   const containerIdRef = useRef(`barcode-reader-${Math.random().toString(36).slice(2, 9)}`);
 
   useEffect(() => {
     let isMounted = true;
-    let isStarting = true;
     const regionId = containerIdRef.current;
+
+    // Helper to stop and purge existing video tracks in the container
+    const cleanupMedia = () => {
+      const containerEl = document.getElementById(regionId);
+      if (containerEl) {
+        const videos = containerEl.querySelectorAll('video');
+        videos.forEach((v) => {
+          try {
+            if (v.srcObject && v.srcObject.getTracks) {
+              v.srcObject.getTracks().forEach((track) => track.stop());
+            }
+            v.srcObject = null;
+          } catch {}
+          v.remove();
+        });
+        const canvases = containerEl.querySelectorAll('canvas');
+        canvases.forEach((c) => c.remove());
+      }
+    };
+
+    cleanupMedia();
 
     const html5QrCode = new Html5Qrcode(regionId, {
       formatsToSupport: [
@@ -39,14 +67,19 @@ export default function BarcodeScanner({
     });
     scannerRef.current = html5QrCode;
 
+    const stopAndClose = async () => {
+      try {
+        if (html5QrCode.isScanning) {
+          await html5QrCode.stop();
+        }
+        html5QrCode.clear();
+      } catch {}
+      cleanupMedia();
+      if (isMounted && onCloseRef.current) onCloseRef.current();
+    };
+
     const startScanner = async () => {
       try {
-        // Pre-clear any residual DOM elements
-        const containerEl = document.getElementById(regionId);
-        if (containerEl) {
-          containerEl.innerHTML = '';
-        }
-
         await html5QrCode.start(
           { facingMode: 'environment' },
           {
@@ -57,7 +90,6 @@ export default function BarcodeScanner({
           (decodedText) => {
             if (!isMounted) return;
             const now = Date.now();
-            // Prevent duplicate rapid fires for the same barcode within 1.5s
             if (
               lastScannedRef.current.code === decodedText &&
               now - lastScannedRef.current.time < 1500
@@ -67,7 +99,7 @@ export default function BarcodeScanner({
             lastScannedRef.current = { code: decodedText, time: now };
             setLastScanned(decodedText);
 
-            // Play a subtle beep sound using Web Audio API
+            // Audio beep feedback
             try {
               const ctx = new (window.AudioContext || window.webkitAudioContext)();
               const osc = ctx.createOscillator();
@@ -79,42 +111,50 @@ export default function BarcodeScanner({
               gain.connect(ctx.destination);
               osc.start();
               osc.stop(ctx.currentTime + 0.1);
-            } catch {
-              // Ignore audio context errors
-            }
+            } catch {}
 
-            onScan(decodedText);
+            if (onScanRef.current) onScanRef.current(decodedText);
 
             if (!continuous) {
               stopAndClose();
             }
           },
-          () => {
-            // Frame scan loop - normal when no barcode detected in frame
-          }
+          () => {}
         );
 
-        isStarting = false;
-        if (isMounted) {
-          setStarting(false);
-          // Hide any canvas that html5-qrcode might append inside container
-          if (containerEl) {
-            const canvases = containerEl.querySelectorAll('canvas');
-            canvases.forEach((c) => {
-              c.style.display = 'none';
-              c.style.visibility = 'hidden';
-            });
-          }
-        } else {
-          // If unmounted while start was resolving, stop immediately
+        if (!isMounted) {
           if (html5QrCode.isScanning) {
             html5QrCode.stop().then(() => html5QrCode.clear()).catch(() => {});
           } else {
             html5QrCode.clear();
           }
+          cleanupMedia();
+          return;
+        }
+
+        setStarting(false);
+
+        // Enforce single video tag: remove duplicate video/canvas elements
+        const containerEl = document.getElementById(regionId);
+        if (containerEl) {
+          const videos = containerEl.querySelectorAll('video');
+          if (videos.length > 1) {
+            for (let i = 1; i < videos.length; i++) {
+              try {
+                if (videos[i].srcObject && videos[i].srcObject.getTracks) {
+                  videos[i].srcObject.getTracks().forEach((t) => t.stop());
+                }
+              } catch {}
+              videos[i].remove();
+            }
+          }
+          const canvases = containerEl.querySelectorAll('canvas');
+          canvases.forEach((c) => {
+            c.style.display = 'none';
+            c.remove();
+          });
         }
       } catch (err) {
-        isStarting = false;
         if (isMounted) {
           setStarting(false);
           setError(
@@ -125,22 +165,11 @@ export default function BarcodeScanner({
       }
     };
 
-    const stopAndClose = async () => {
-      try {
-        if (html5QrCode.isScanning) {
-          await html5QrCode.stop();
-        }
-        html5QrCode.clear();
-      } catch {
-        // Ignore stop errors
-      }
-      if (isMounted) onClose();
-    };
-
     startScanner();
 
     return () => {
       isMounted = false;
+      cleanupMedia();
       if (scannerRef.current) {
         try {
           if (scannerRef.current.isScanning) {
@@ -151,12 +180,10 @@ export default function BarcodeScanner({
           } else {
             scannerRef.current.clear();
           }
-        } catch {
-          // Ignore cleanup errors
-        }
+        } catch {}
       }
     };
-  }, [continuous, onClose, onScan]);
+  }, [continuous]);
 
   return (
     <div className="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-sm flex items-center justify-center p-4">
@@ -190,15 +217,15 @@ export default function BarcodeScanner({
               <p className="text-[11px] text-rose-300/90 leading-relaxed">{error}</p>
             </div>
           ) : (
-            <div className="relative rounded-2xl overflow-hidden bg-black border border-slate-700 min-h-[240px] max-h-[300px] flex items-center justify-center">
+            <div className="relative rounded-2xl overflow-hidden bg-black border border-slate-700 min-h-[240px] max-h-[280px] flex items-center justify-center">
               {starting && (
                 <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-slate-950/80 text-xs text-slate-300 gap-2">
                   <Camera className="w-6 h-6 text-emerald-400 animate-pulse" />
                   <span>Starting camera...</span>
                 </div>
               )}
-              {/* Dynamic unique container ID */}
-              <div id={containerIdRef.current} className="w-full h-full overflow-hidden" />
+              {/* Unique scanner container */}
+              <div id={containerIdRef.current} className="w-full h-full min-h-[240px] relative overflow-hidden" />
             </div>
           )}
 

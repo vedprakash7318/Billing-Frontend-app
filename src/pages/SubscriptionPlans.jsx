@@ -274,7 +274,7 @@ export default function SubscriptionPlans() {
                   No subscription plans available currently. Please contact Super Admin.
                 </div>
               ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div className="space-y-4">
                   {plans.map((p) => {
                     const isCurrent = current?.planId === (p.id || p._id);
                     const isActivating = activatingId === (p.id || p._id);
