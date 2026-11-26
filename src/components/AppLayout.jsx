@@ -20,6 +20,7 @@ import {
   Sliders,
   ShieldCheck,
   CheckCircle2,
+  AlertTriangle,
 } from 'lucide-react';
 import { toastSuccess } from '../utils/alerts';
 
@@ -37,7 +38,16 @@ export default function AppLayout({
   const user = JSON.parse(localStorage.getItem('client_admin_user') || '{}');
   const storeName = user?.tenant?.businessName || user?.name || 'My Store';
   const roleName = user?.role === 'STAFF' ? (user?.designation || 'Cashier') : 'Store Admin';
-  const planName = user?.tenant?.currentSubscription?.plan?.name || 'Active Plan';
+  const currentSub = user?.tenant?.currentSubscription;
+  const planName = currentSub?.plan?.name || 'Active Plan';
+
+  // Check if store subscription is expired
+  const now = new Date();
+  const isSubscriptionExpired =
+    !currentSub ||
+    currentSub?.status === 'EXPIRED' ||
+    user?.tenant?.status === 'EXPIRED' ||
+    (currentSub?.endDate && new Date(currentSub.endDate) < now);
 
   // Read current cart count from localStorage
   const [cartCount, setCartCount] = useState(0);
@@ -286,6 +296,28 @@ export default function AppLayout({
           )}
         </div>
       </header>
+
+      {/* ========================================================================= */}
+      {/* EXPIRED SUBSCRIPTION ALERT BANNER                                         */}
+      {/* ========================================================================= */}
+      {isSubscriptionExpired && (
+        <div className="bg-gradient-to-r from-amber-600 via-rose-600 to-rose-700 text-white px-3.5 py-2.5 shadow-md z-30">
+          <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2 text-xs">
+            <div className="flex items-center gap-2 min-w-0">
+              <AlertTriangle className="w-4 h-4 shrink-0 text-amber-200 animate-pulse" />
+              <span className="font-bold">
+                ⚠️ Store Subscription Expired — Billing, Product & Category additions are paused.
+              </span>
+            </div>
+            <Link
+              to="/subscription"
+              className="px-3 py-1 bg-white hover:bg-rose-50 text-rose-700 font-black rounded-xl text-xs whitespace-nowrap shadow-sm active:scale-95 transition-all shrink-0"
+            >
+              Pay via Razorpay / Renew
+            </Link>
+          </div>
+        </div>
+      )}
 
       {/* ========================================================================= */}
       {/* 3. MAIN CONTENT CONTAINER (Responsive width & proper safe area padding)   */}

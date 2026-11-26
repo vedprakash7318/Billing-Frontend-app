@@ -39,6 +39,22 @@ export default function CategoryForm() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    if (!isEditing) {
+      const user = JSON.parse(localStorage.getItem('client_admin_user') || '{}');
+      const currentSub = user?.tenant?.currentSubscription;
+      const isExpired =
+        !currentSub ||
+        currentSub.status === 'EXPIRED' ||
+        user?.tenant?.status === 'EXPIRED' ||
+        (currentSub.endDate && new Date(currentSub.endDate) < new Date());
+
+      if (isExpired) {
+        setError('Subscription expired! Please renew or activate a plan to add categories.');
+        toastError('Subscription expired! Please renew or activate a plan to add categories.');
+        return;
+      }
+    }
+
     setSaving(true);
 
     try {

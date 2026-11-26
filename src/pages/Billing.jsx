@@ -157,7 +157,20 @@ export default function Billing() {
   const totalItemsCount = cart.reduce((sum, item) => sum + item.quantity, 0);
   const subtotal = cart.reduce((sum, item) => sum + item.total, 0);
 
+  const user = JSON.parse(localStorage.getItem('client_admin_user') || '{}');
+  const currentSub = user?.tenant?.currentSubscription;
+  const isSubscriptionExpired =
+    !currentSub ||
+    currentSub.status === 'EXPIRED' ||
+    user?.tenant?.status === 'EXPIRED' ||
+    (currentSub.endDate && new Date(currentSub.endDate) < new Date());
+
   const handleProceedToCheckout = () => {
+    if (isSubscriptionExpired) {
+      toastError('Your store subscription is expired! Please renew your plan to create bills.');
+      navigate('/subscription');
+      return;
+    }
     if (cart.length === 0) {
       toastError('Please select at least one product before proceeding.');
       return;
@@ -443,9 +456,13 @@ export default function Billing() {
                   <button
                     type="button"
                     onClick={handleProceedToCheckout}
-                    className="hidden lg:flex w-full py-3 px-4 bg-emerald-600 hover:bg-emerald-700 active:scale-98 text-white font-black text-xs rounded-2xl items-center justify-center gap-2 shadow-md shadow-emerald-600/25 transition-all cursor-pointer"
+                    className={`hidden lg:flex w-full py-3 px-4 active:scale-98 text-white font-black text-xs rounded-2xl items-center justify-center gap-2 shadow-md transition-all cursor-pointer ${
+                      isSubscriptionExpired
+                        ? 'bg-rose-600 hover:bg-rose-700 shadow-rose-600/25'
+                        : 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-600/25'
+                    }`}
                   >
-                    <span>Proceed to Checkout</span>
+                    <span>{isSubscriptionExpired ? 'Subscription Expired — Renew Plan' : 'Proceed to Checkout'}</span>
                     <ArrowRight className="w-4 h-4 stroke-[2.5]" />
                   </button>
                 </div>
@@ -469,9 +486,13 @@ export default function Billing() {
               <button
                 type="button"
                 onClick={handleProceedToCheckout}
-                className="py-2.5 px-4 bg-emerald-500 hover:bg-emerald-600 active:scale-95 text-slate-950 font-black text-xs rounded-xl flex items-center gap-1.5 shadow-md shadow-emerald-500/25 transition-all"
+                className={`py-2.5 px-4 active:scale-95 text-white font-black text-xs rounded-xl flex items-center gap-1.5 shadow-md transition-all ${
+                  isSubscriptionExpired
+                    ? 'bg-rose-600 hover:bg-rose-700'
+                    : 'bg-emerald-500 hover:bg-emerald-600 text-slate-950'
+                }`}
               >
-                <span>Checkout</span>
+                <span>{isSubscriptionExpired ? 'Renew Plan' : 'Checkout'}</span>
                 <ArrowRight className="w-4 h-4 stroke-[3]" />
               </button>
             </div>

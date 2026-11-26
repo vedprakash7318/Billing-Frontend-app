@@ -146,6 +146,22 @@ export default function ProductForm() {
       return;
     }
 
+    if (!isEditing) {
+      const user = JSON.parse(localStorage.getItem('client_admin_user') || '{}');
+      const currentSub = user?.tenant?.currentSubscription;
+      const isExpired =
+        !currentSub ||
+        currentSub.status === 'EXPIRED' ||
+        user?.tenant?.status === 'EXPIRED' ||
+        (currentSub.endDate && new Date(currentSub.endDate) < new Date());
+
+      if (isExpired) {
+        setError('Subscription expired! Please renew or activate a plan to add products.');
+        toastError('Subscription expired! Please renew or activate a plan to add products.');
+        return;
+      }
+    }
+
     setSaving(true);
     try {
       const payload = {

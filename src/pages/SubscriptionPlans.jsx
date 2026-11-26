@@ -15,6 +15,9 @@ import {
   Sparkles,
   ArrowRight,
   ChevronLeft,
+  Smartphone,
+  QrCode,
+  Layers,
 } from 'lucide-react';
 import api from '../services/api';
 import { confirmDialog, toastSuccess, toastError } from '../utils/alerts';
@@ -45,30 +48,113 @@ export default function SubscriptionPlans() {
 
   const handleActivatePlan = async (plan) => {
     const isFree = plan.price === 0 || plan.planType === 'FREE_TRIAL' || plan.planType === 'FREE';
-    const confirmed = await confirmDialog({
-      title: `Activate ${plan.name}?`,
-      text: isFree
-        ? `Activate this ${plan.durationType} plan for free?`
-        : `Activate ${plan.name} for ₹${plan.price}? Valid for ${plan.durationType}.`,
-      confirmButtonText: 'Yes, Activate Plan',
-      confirmButtonColor: '#10b981',
-    });
 
-    if (!confirmed) return;
+    // 1. FREE PLAN / FREE TRIAL ACTIVATION
+    if (isFree) {
+      const confirmed = await confirmDialog({
+        title: `Activate Free Plan?`,
+        text: `Activate "${plan.name}" for free? Any remaining days on your current trial will be preserved and stacked!`,
+        confirmButtonText: 'Yes, Activate Free Plan',
+        confirmButtonColor: '#10b981',
+      });
 
+      if (!confirmed) return;
+
+      setActivatingId(plan.id || plan._id);
+      try {
+        const res = await api.post('/admin/subscription/activate-free', {
+          planId: plan.id || plan._id,
+        });
+        if (res.data?.success) {
+          toastSuccess(res.data.message || 'Free Plan activated successfully!');
+          fetchSubscription();
+        }
+      } catch (err) {
+        toastError(err.response?.data?.error || 'Failed to activate free plan');
+      } finally {
+        setActivatingId(null);
+      }
+      return;
+    }
+
+    // 2. PAID PLAN ACTIVATION VIA RAZORPAY (UPI, Cards, NetBanking, QR)
     setActivatingId(plan.id || plan._id);
     try {
-      const res = await api.post('/admin/subscription/activate', {
+      // Step A: Create Razorpay Order on server
+      const orderRes = await api.post('/admin/subscription/create-order', {
         planId: plan.id || plan._id,
-        paymentMethod: 'UPI',
       });
-      if (res.data?.success) {
-        toastSuccess(res.data.message || 'Plan activated successfully!');
-        fetchSubscription();
+
+      if (!orderRes.data?.success) {
+        throw new Error(orderRes.data?.error || 'Failed to initialize Razorpay order');
       }
+
+      const { orderId, amount, currency, keyId, store } = orderRes.data;
+
+      // Ensure Razorpay SDK is loaded
+      if (!window.Razorpay) {
+        throw new Error('Razorpay SDK failed to load. Please check your internet connection and refresh.');
+      }
+
+      // Step B: Configure Razorpay Checkout options
+      const options = {
+        key: keyId || import.meta.env.VITE_RAZORPAY_KEY_ID || 'rzp_live_HGCsLV5PjSYo8F',
+        amount: amount,
+        currency: currency || 'INR',
+        name: store?.name || 'BillFlow Store',
+        description: `Plan: ${plan.name} (Valid for ${plan.durationValue || 1} ${plan.durationType?.toLowerCase()})`,
+        image: 'https://cdn-icons-png.flaticon.com/512/3135/3135715.png',
+        order_id: orderId,
+        prefill: {
+          name: store?.name || 'Store Merchant',
+          email: store?.email || '',
+          contact: store?.phone || '',
+        },
+        notes: {
+          planId: plan.id || plan._id,
+          planName: plan.name,
+        },
+        theme: {
+          color: '#10b981', // Emerald green
+        },
+        modal: {
+          ondismiss: () => {
+            setActivatingId(null);
+          },
+        },
+        handler: async (response) => {
+          // Step C: Verify Razorpay Signature on backend and activate plan
+          try {
+            const verifyRes = await api.post('/admin/subscription/verify-payment', {
+              razorpay_order_id: response.razorpay_order_id,
+              razorpay_payment_id: response.razorpay_payment_id,
+              razorpay_signature: response.razorpay_signature,
+              planId: plan.id || plan._id,
+            });
+
+            if (verifyRes.data?.success) {
+              toastSuccess(verifyRes.data.message || '🎉 Payment verified! Plan successfully activated.');
+              fetchSubscription();
+            } else {
+              throw new Error(verifyRes.data?.error || 'Payment signature verification failed.');
+            }
+          } catch (verifyErr) {
+            toastError(verifyErr.response?.data?.error || verifyErr.message || 'Failed to verify payment with server');
+          } finally {
+            setActivatingId(null);
+          }
+        },
+      };
+
+      const rzpInstance = new window.Razorpay(options);
+      rzpInstance.on('payment.failed', function (resp) {
+        toastError(resp.error?.description || 'Payment was unsuccessful or cancelled.');
+        setActivatingId(null);
+      });
+
+      rzpInstance.open();
     } catch (err) {
-      toastError(err.response?.data?.error || err.message || 'Failed to activate plan');
-    } finally {
+      toastError(err.response?.data?.error || err.message || 'Unable to initiate payment');
       setActivatingId(null);
     }
   };
@@ -122,52 +208,65 @@ export default function SubscriptionPlans() {
                 )}
               </div>
 
-              {/* Status & Validity Dates */}
-              <div className="mt-3 grid grid-cols-2 gap-2 text-[11px]">
-                <div className="p-2.5 bg-white/5 rounded-xl border border-white/5">
-                  <span className="text-slate-400 block text-[10px]">Start Date</span>
+              {/* Validity Details */}
+              <div className="mt-3 grid grid-cols-2 sm:grid-cols-3 gap-2.5 text-xs">
+                <div className="bg-white/5 rounded-2xl p-3 border border-white/10">
+                  <span className="text-[10px] text-slate-400 block font-medium">Valid From</span>
                   <span className="font-bold text-slate-200">
                     {current?.startDate ? new Date(current.startDate).toLocaleDateString('en-IN') : 'N/A'}
                   </span>
                 </div>
-                <div className="p-2.5 bg-white/5 rounded-xl border border-white/5">
-                  <span className="text-slate-400 block text-[10px]">Expiry Date</span>
+
+                <div className="bg-white/5 rounded-2xl p-3 border border-white/10">
+                  <span className="text-[10px] text-slate-400 block font-medium">Valid Until</span>
                   <span className="font-bold text-slate-200">
                     {current?.endDate ? new Date(current.endDate).toLocaleDateString('en-IN') : 'N/A'}
                   </span>
                 </div>
+
+                <div className="bg-white/5 rounded-2xl p-3 border border-white/10 col-span-2 sm:col-span-1">
+                  <span className="text-[10px] text-slate-400 block font-medium">Status</span>
+                  <span
+                    className={`font-black text-xs uppercase ${
+                      current?.status === 'EXPIRED' ? 'text-rose-400' : 'text-emerald-400'
+                    }`}
+                  >
+                    {current?.status || 'INACTIVE'}
+                  </span>
+                </div>
               </div>
 
-              {/* Renewal Rule Notice */}
+              {/* Plan Stacking / Renewal Notice */}
               <div className="mt-3">
-                {!canActivate && typeof daysRemaining === 'number' && daysRemaining > 7 ? (
-                  <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-2xl flex items-start gap-2.5 text-[11px] text-amber-200/90 leading-relaxed">
-                    <Lock className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
-                    <div>
-                      <span className="font-bold text-amber-300 block">Renewal Locked ({daysRemaining} days remaining)</span>
-                      <span>
-                        Aapka current plan abhi active hai. New plan activate / renew karne ka option expiry ke <strong>7 din pehle</strong> open hoga.
-                      </span>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="p-3 bg-emerald-500/10 border border-emerald-500/25 rounded-2xl flex items-center gap-2.5 text-[11px] text-emerald-200">
-                    <Zap className="w-4 h-4 text-emerald-400 shrink-0" />
+                <div className="p-3 bg-emerald-500/10 border border-emerald-500/25 rounded-2xl flex items-start gap-2.5 text-[11px] text-emerald-200 leading-relaxed">
+                  <Sparkles className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                  <div>
+                    <span className="font-bold text-emerald-300 block">
+                      Automatic Plan Stacking Enabled
+                    </span>
                     <span>
-                      <strong>Renewal Open!</strong> Aap neeche diye gaye kisi bhi plan ko activate ya renew kar sakte hain.
+                      Maan lo aapke paas <strong>3 din</strong> ka free trial ya plan bacha hai aur aap <strong>1 Month</strong> ka plan activate karte hain, to pure <strong>3 Din + 1 Month (33 Din)</strong> add honge. Koi bhi din waste nahi hoga!
                     </span>
                   </div>
-                )}
+                </div>
               </div>
             </div>
 
             {/* 2. AVAILABLE PLANS GRID */}
             <div className="space-y-3">
-              <div className="flex items-center justify-between px-1">
-                <h3 className="text-xs font-black uppercase tracking-wider text-slate-900">
-                  Available Plans ({plans.length})
-                </h3>
-                <span className="text-[10px] text-slate-400 font-medium">Added by Admin</span>
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 px-1">
+                <div>
+                  <h3 className="text-sm font-black uppercase tracking-wider text-slate-900">
+                    Available Plans ({plans.length})
+                  </h3>
+                  <p className="text-[11px] text-slate-500 font-medium">
+                    Secure UPI, QR, Google Pay, PhonePe, Cards & NetBanking via Razorpay
+                  </p>
+                </div>
+                <div className="flex items-center gap-1.5 text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-lg shrink-0">
+                  <ShieldCheck className="w-3.5 h-3.5" />
+                  <span>Razorpay Verified</span>
+                </div>
               </div>
 
               {plans.length === 0 ? (
@@ -179,100 +278,98 @@ export default function SubscriptionPlans() {
                   {plans.map((p) => {
                     const isCurrent = current?.planId === (p.id || p._id);
                     const isActivating = activatingId === (p.id || p._id);
-                    const isLocked = !canActivate && typeof daysRemaining === 'number' && daysRemaining > 7;
+                    const isFree = p.price === 0 || p.planType === 'FREE_TRIAL';
 
                     return (
                       <div
                         key={p.id || p._id}
-                        className={`bg-white rounded-3xl p-4 sm:p-5 border transition-all ${
+                        className={`bg-white rounded-3xl p-4 sm:p-5 border transition-all flex flex-col justify-between ${
                           isCurrent
                             ? 'border-emerald-500 shadow-md ring-2 ring-emerald-500/20'
                             : 'border-slate-200/80 shadow-xs hover:border-slate-300'
                         }`}
                       >
-                        <div className="flex items-start justify-between gap-3">
-                          <div>
-                            <div className="flex items-center gap-2">
-                              <h4 className="font-black text-sm text-slate-900">{p.name}</h4>
-                              {isCurrent && (
-                                <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
-                                  Current
-                                </span>
-                              )}
-                              {p.isPopular && (
-                                <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-700">
-                                  Popular
-                                </span>
-                              )}
+                        <div>
+                          <div className="flex items-start justify-between gap-3">
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <h4 className="font-black text-sm text-slate-900">{p.name}</h4>
+                                {isCurrent && (
+                                  <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
+                                    Current
+                                  </span>
+                                )}
+                                {p.isPopular && (
+                                  <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-700">
+                                    Popular
+                                  </span>
+                                )}
+                              </div>
+                              <p className="text-[11px] text-slate-500 mt-1">
+                                {p.description || 'Full POS & Billing Access'}
+                              </p>
                             </div>
-                            <p className="text-[11px] text-slate-500 mt-1">{p.description || 'Full POS & Billing Access'}</p>
+
+                            <div className="text-right shrink-0">
+                              <span className="text-xl font-black text-slate-950 block">
+                                {isFree ? 'Free' : `₹${p.price}`}
+                              </span>
+                              <span className="text-[10px] font-bold text-slate-400 uppercase">
+                                {p.durationType}
+                              </span>
+                            </div>
                           </div>
 
-                          <div className="text-right shrink-0">
-                            <span className="text-lg font-black text-slate-950 block">
-                              {p.price === 0 ? 'Free' : `₹${p.price}`}
-                            </span>
-                            <span className="text-[10px] font-bold text-slate-400 uppercase">
-                              {p.durationType}
-                            </span>
+                          {/* Features List */}
+                          <div className="mt-3 pt-3 border-t border-slate-100 space-y-1.5 text-xs text-slate-700">
+                            <div className="flex items-center gap-2">
+                              <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                              <span>Unlimited Invoices & Thermal Printing</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                              <span>Instant UPI / QR / SMS Receipt Sharing</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                              <span>Unlimited Products, Categories & Barcode Scanning</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                              <span>Cashier Staff Logins (Multi-counter)</span>
+                            </div>
                           </div>
                         </div>
 
-                        {/* Features List */}
-                        <div className="mt-3 pt-3 border-t border-slate-100 space-y-1.5 text-xs text-slate-700">
-                          <div className="flex items-center gap-2">
-                            <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                            <span>Unlimited Invoices & Thermal Printing</span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                            <span>SMS & WhatsApp Digital Receipt Sharing</span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                            <span>Unlimited Products, Categories & Barcode Scanning</span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                            <span>Staff & Cashier Employee Logins</span>
-                          </div>
-                        </div>
+                        {/* Action Button & Payment Method Badge */}
+                        <div className="mt-4 pt-3 border-t border-slate-100 space-y-2">
+                          <button
+                            type="button"
+                            disabled={isActivating}
+                            onClick={() => handleActivatePlan(p)}
+                            className="w-full py-3 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 active:scale-95 text-white text-xs font-black rounded-2xl shadow-md shadow-emerald-600/20 flex items-center justify-center gap-1.5 transition-all disabled:opacity-50 cursor-pointer"
+                          >
+                            {isActivating ? (
+                              <span>Processing with Razorpay...</span>
+                            ) : (
+                              <>
+                                <Zap className="w-4 h-4 fill-white" />
+                                <span>
+                                  {isFree
+                                    ? 'Activate Free Trial'
+                                    : isCurrent
+                                    ? `Renew via UPI / Razorpay (₹${p.price})`
+                                    : `Pay & Activate (₹${p.price})`}
+                                </span>
+                              </>
+                            )}
+                          </button>
 
-                        {/* Action Button */}
-                        <div className="mt-4 pt-3 border-t border-slate-100">
-                          {isCurrent && isLocked ? (
-                            <button
-                              disabled
-                              className="w-full py-2.5 bg-slate-100 text-slate-400 text-xs font-bold rounded-xl cursor-not-allowed flex items-center justify-center gap-1.5"
-                            >
-                              <Lock className="w-3.5 h-3.5" />
-                              <span>Current Active Plan ({daysRemaining} days left)</span>
-                            </button>
-                          ) : isLocked ? (
-                            <button
-                              disabled
-                              className="w-full py-2.5 bg-slate-100 text-slate-400 text-xs font-bold rounded-xl cursor-not-allowed flex items-center justify-center gap-1.5"
-                              title="Available within 7 days of expiry"
-                            >
-                              <Lock className="w-3.5 h-3.5" />
-                              <span>Renewal Locked (Available in {daysRemaining - 7} days)</span>
-                            </button>
-                          ) : (
-                            <button
-                              type="button"
-                              disabled={isActivating}
-                              onClick={() => handleActivatePlan(p)}
-                              className="w-full py-3 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 active:scale-95 text-white text-xs font-black rounded-2xl shadow-md shadow-emerald-600/20 flex items-center justify-center gap-1.5 transition-all disabled:opacity-50"
-                            >
-                              {isActivating ? (
-                                <span>Activating...</span>
-                              ) : (
-                                <>
-                                  <Zap className="w-4 h-4" />
-                                  <span>{isCurrent ? 'Renew Plan' : 'Activate Plan'}</span>
-                                </>
-                              )}
-                            </button>
+                          {!isFree && (
+                            <p className="text-[10px] text-center text-slate-400 font-medium flex items-center justify-center gap-1">
+                              <CreditCard className="w-3 h-3 text-emerald-600" />
+                              <span>UPI (GPay/PhonePe/Paytm), Cards, NetBanking</span>
+                            </p>
                           )}
                         </div>
                       </div>
@@ -286,24 +383,31 @@ export default function SubscriptionPlans() {
             {history.length > 0 && (
               <div className="bg-white rounded-3xl p-4 border border-slate-200/80 shadow-xs space-y-3">
                 <h3 className="text-xs font-black uppercase tracking-wider text-slate-900 pb-1 border-b border-slate-100">
-                  License History
+                  License & Payment History
                 </h3>
                 <div className="space-y-2 divide-y divide-slate-100">
                   {history.map((h) => (
                     <div key={h.id} className="pt-2 flex items-center justify-between text-xs">
                       <div>
                         <span className="font-bold text-slate-800 block">{h.planName}</span>
-                        <span className="text-[10px] text-slate-400">
-                          {new Date(h.startDate).toLocaleDateString('en-IN')} -{' '}
-                          {new Date(h.endDate).toLocaleDateString('en-IN')}
-                        </span>
+                        <div className="flex items-center gap-2 mt-0.5">
+                          <span className="text-[10px] text-slate-400">
+                            {new Date(h.startDate).toLocaleDateString('en-IN')} -{' '}
+                            {new Date(h.endDate).toLocaleDateString('en-IN')}
+                          </span>
+                          {h.transactionRef && (
+                            <span className="text-[9px] font-mono text-emerald-700 bg-emerald-50 px-1 rounded">
+                              Ref: {h.transactionRef}
+                            </span>
+                          )}
+                        </div>
                       </div>
                       <div className="text-right">
                         <span className="font-black text-slate-900 block">
                           {h.amountPaid === 0 ? 'Free' : `₹${h.amountPaid}`}
                         </span>
                         <span className="text-[10px] text-emerald-700 uppercase font-bold">
-                          {h.status}
+                          {h.status} • {h.paymentMethod}
                         </span>
                       </div>
                     </div>
