@@ -416,7 +416,7 @@ export default function SubscriptionPlans() {
       subtitle="Store License & Upgrades"
       backTo="/profile"
     >
-      <div className="max-w-6xl mx-auto space-y-4 pb-12">
+      <div className="w-full max-w-5xl mx-auto space-y-4 sm:space-y-6 pb-24 sm:pb-32">
         {loading ? (
           <div className="py-20 text-center text-xs text-slate-400 animate-pulse">
             Loading subscription details & plans...
@@ -740,13 +740,13 @@ export default function SubscriptionPlans() {
                 </div>
 
                 {/* Mandate Action Button */}
-                <div className="shrink-0 flex items-center gap-2 self-start sm:self-center">
+                <div className="w-full sm:w-auto shrink-0 flex items-center gap-2 pt-1 sm:pt-0">
                   {autoPayInfo.status === 'ACTIVE' ? (
                     <button
                       type="button"
                       disabled={togglingAutoPay}
                       onClick={handleCancelAutoPay}
-                      className="px-3.5 py-2 rounded-xl text-xs font-bold text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200 transition-all cursor-pointer flex items-center gap-1.5 active:scale-95"
+                      className="w-full sm:w-auto justify-center px-4 py-2.5 rounded-xl text-xs font-bold text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200 transition-all cursor-pointer flex items-center gap-1.5 active:scale-95"
                     >
                       <span>Cancel AutoPay</span>
                     </button>
@@ -755,7 +755,7 @@ export default function SubscriptionPlans() {
                       type="button"
                       disabled={togglingAutoPay}
                       onClick={handleSetupAutoPay}
-                      className="px-4 py-2.5 rounded-xl text-xs font-black text-white bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 shadow-md shadow-indigo-600/20 active:scale-95 transition-all cursor-pointer flex items-center gap-2"
+                      className="w-full sm:w-auto justify-center px-4 py-2.5 rounded-xl text-xs font-black text-white bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 shadow-md shadow-indigo-600/20 active:scale-95 transition-all cursor-pointer flex items-center gap-2"
                     >
                       <Zap className="w-3.5 h-3.5 fill-white" />
                       <span>{togglingAutoPay ? 'Connecting...' : autoPayInfo.status === 'CANCELLED' ? 'Re-enable AutoPay' : 'Set up UPI AutoPay'}</span>
@@ -815,7 +815,7 @@ export default function SubscriptionPlans() {
                   No subscription plans available currently. Please contact Super Admin.
                 </div>
               ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-5">
                   {plans.map((p) => {
                     const isCurrent = current?.planId === (p.id || p._id);
                     const isActivating = activatingId === (p.id || p._id);
@@ -832,8 +832,8 @@ export default function SubscriptionPlans() {
                       >
                         <div>
                           <div className="flex items-start justify-between gap-3">
-                            <div>
-                              <div className="flex items-center gap-2">
+                            <div className="min-w-0 flex-1">
+                              <div className="flex flex-wrap items-center gap-1.5">
                                 <h4 className="font-black text-sm text-slate-900">{p.name}</h4>
                                 {isCurrent && (
                                   <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
@@ -846,13 +846,13 @@ export default function SubscriptionPlans() {
                                   </span>
                                 )}
                               </div>
-                              <p className="text-[11px] text-slate-500 mt-1">
+                              <p className="text-[11px] text-slate-500 mt-1 line-clamp-2">
                                 {p.description || 'Full POS & Billing Access'}
                               </p>
                             </div>
 
                             <div className="text-right shrink-0">
-                              <span className="text-xl font-black text-slate-950 block">
+                              <span className="text-xl sm:text-2xl font-black text-slate-950 block">
                                 {isFree ? 'Free' : `₹${p.price}`}
                               </span>
                               <span className="text-[10px] font-bold text-slate-400 uppercase">
@@ -862,22 +862,22 @@ export default function SubscriptionPlans() {
                           </div>
 
                           {/* Features List */}
-                          <div className="mt-3 pt-3 border-t border-slate-100 space-y-1.5 text-xs text-slate-700">
-                            <div className="flex items-center gap-2">
-                              <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                              <span>Unlimited Invoices & Thermal Printing</span>
+                          <div className="mt-3.5 pt-3 border-t border-slate-100 space-y-2 text-xs text-slate-700">
+                            <div className="flex items-start gap-2">
+                              <Check className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                              <span className="leading-snug">Unlimited Invoices & Thermal Printing</span>
                             </div>
-                            <div className="flex items-center gap-2">
-                              <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                              <span>Instant UPI / QR / SMS Receipt Sharing</span>
+                            <div className="flex items-start gap-2">
+                              <Check className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                              <span className="leading-snug">Instant UPI / QR / SMS Receipt Sharing</span>
                             </div>
-                            <div className="flex items-center gap-2">
-                              <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                              <span>Unlimited Products, Categories & Barcode Scanning</span>
+                            <div className="flex items-start gap-2">
+                              <Check className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                              <span className="leading-snug">Unlimited Products, Categories & Barcode Scanning</span>
                             </div>
-                            <div className="flex items-center gap-2">
-                              <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                              <span>Cashier Staff Logins (Multi-counter)</span>
+                            <div className="flex items-start gap-2">
+                              <Check className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                              <span className="leading-snug">Cashier Staff Logins (Multi-counter)</span>
                             </div>
                           </div>
                         </div>
@@ -993,7 +993,7 @@ export default function SubscriptionPlans() {
                   No booster packs available right now. Contact Super Admin to create packs.
                 </div>
               ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
                   {filteredBoosterPacks.map((pack) => {
                     const isRecharging = rechargingId === (pack.id || pack._id);
                     const isSMS = pack.type === 'SMS';

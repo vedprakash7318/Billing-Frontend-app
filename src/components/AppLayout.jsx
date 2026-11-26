@@ -128,12 +128,12 @@ export default function AppLayout({
   ];
 
   return (
-    <div className="min-h-screen min-h-[100dvh] w-full bg-slate-950 flex justify-center selection:bg-emerald-500 selection:text-white">
-      {/* Mobile-Only Phone Frame (Centered on Laptop/Tablet, Full Width on Phone) */}
-      <div className="w-full max-w-md min-h-screen min-h-[100dvh] bg-slate-50 flex flex-col relative shadow-[0_0_60px_rgba(0,0,0,0.6)] border-x border-slate-800/40">
+    <div className="min-h-screen min-h-[100dvh] w-full bg-slate-100/80 flex justify-center selection:bg-emerald-500 selection:text-white">
+      {/* Responsive App Frame: Full width on phone, expands gracefully up to max-w-5xl on desktop */}
+      <div className="w-full max-w-5xl min-h-screen min-h-[100dvh] bg-slate-50 flex flex-col relative sm:shadow-lg sm:border-x sm:border-slate-200/90">
 
-        {/* Top Phone App Header */}
-        <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200/80 px-3.5 py-2.5 flex items-center justify-between shadow-2xs">
+        {/* Top Header */}
+        <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200/80 px-3.5 sm:px-6 py-2.5 sm:py-3 flex items-center justify-between shadow-2xs">
           <div className="flex items-center gap-2.5 min-w-0">
             {backTo ? (
               <button
@@ -194,19 +194,19 @@ export default function AppLayout({
           </div>
         )}
 
-        {/* Main Phone Content Container */}
+        {/* Main Content Container */}
         <main
-          className={`flex-1 w-full px-3.5 py-4 ${
-            hideBottomNav ? 'pb-8' : 'pb-28'
+          className={`flex-1 w-full px-3.5 sm:px-6 md:px-8 py-4 sm:py-6 ${
+            hideBottomNav ? 'pb-8 sm:pb-12' : 'pb-28 sm:pb-32'
           }`}
         >
           {children}
         </main>
 
-        {/* Fixed Mobile Bottom Navigation Bar (Centered within max-w-md) */}
+        {/* Fixed Mobile Bottom Navigation Bar (Centered within responsive container) */}
         {!hideBottomNav && (
           <nav
-            className="fixed bottom-0 left-0 right-0 max-w-md mx-auto z-40 bg-white/95 backdrop-blur-xl border-t border-slate-200/90 shadow-[0_-4px_25px_rgba(0,0,0,0.08)]"
+            className="fixed bottom-0 left-0 right-0 max-w-md sm:max-w-xl md:max-w-2xl mx-auto z-40 bg-white/95 backdrop-blur-xl border border-slate-200/90 shadow-[0_-4px_25px_rgba(0,0,0,0.08)] sm:rounded-t-3xl"
             style={{ paddingBottom: 'max(0.5rem, env(safe-area-inset-bottom, 0px))' }}
           >
             <div className="px-2 py-1 flex items-center justify-around relative">
