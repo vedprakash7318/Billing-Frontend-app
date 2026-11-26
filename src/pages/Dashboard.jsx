@@ -15,6 +15,8 @@ import {
   Tag,
   Receipt,
   Printer,
+  Smartphone,
+  MessageSquare,
 } from 'lucide-react';
 import api from '../services/api';
 
@@ -82,6 +84,53 @@ export default function Dashboard() {
             </div>
           </div>
         </Link>
+
+        {/* Live SMS & WhatsApp Message Quota Chips */}
+        <div className="grid grid-cols-2 gap-3">
+          <Link
+            to="/subscription#booster-packs"
+            className="bg-white rounded-3xl p-3.5 border border-slate-200/80 shadow-xs hover:border-indigo-300 transition-colors flex items-center justify-between"
+          >
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0">
+                <Smartphone className="w-4 h-4" />
+              </div>
+              <div>
+                <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block">
+                  SMS Left
+                </span>
+                <span className="text-sm font-black font-mono text-slate-900">
+                  {loading ? '...' : (stats?.quotas?.smsBalance ?? 0)}
+                </span>
+              </div>
+            </div>
+            <span className="text-[9px] font-bold text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded-md">
+              Top-up
+            </span>
+          </Link>
+
+          <Link
+            to="/subscription#booster-packs"
+            className="bg-white rounded-3xl p-3.5 border border-slate-200/80 shadow-xs hover:border-emerald-300 transition-colors flex items-center justify-between"
+          >
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
+                <MessageSquare className="w-4 h-4" />
+              </div>
+              <div>
+                <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block">
+                  WhatsApp Left
+                </span>
+                <span className="text-sm font-black font-mono text-slate-900">
+                  {loading ? '...' : (stats?.quotas?.whatsAppBalance ?? 0)}
+                </span>
+              </div>
+            </div>
+            <span className="text-[9px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded-md">
+              Top-up
+            </span>
+          </Link>
+        </div>
 
         {/* Quick Metrics Grid (2 cols) */}
         <div className="grid grid-cols-2 gap-3">

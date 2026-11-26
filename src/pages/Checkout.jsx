@@ -47,6 +47,18 @@ export default function Checkout() {
   const [generating, setGenerating] = useState(false);
   const [printedInvoice, setPrintedInvoice] = useState(null);
   const [showResultModal, setShowResultModal] = useState(false);
+  const [quotas, setQuotas] = useState(null);
+
+  useEffect(() => {
+    api
+      .get('/admin/subscription')
+      .then((res) => {
+        if (res.data?.data?.quotas) {
+          setQuotas(res.data.data.quotas);
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   // Sync cart changes back to localStorage and notify layout
   useEffect(() => {
@@ -436,7 +448,7 @@ export default function Checkout() {
               <button
                 type="button"
                 onClick={() => setDeliveryMethod('SMS')}
-                className={`py-3 px-2 rounded-2xl border text-xs font-bold flex flex-col items-center gap-1.5 transition-all active:scale-95 ${
+                className={`py-3 px-2 rounded-2xl border text-xs font-bold flex flex-col items-center gap-1 transition-all active:scale-95 ${
                   deliveryMethod === 'SMS'
                     ? 'bg-indigo-600 text-white border-indigo-600 shadow-lg shadow-indigo-600/25 ring-2 ring-indigo-300'
                     : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
@@ -446,12 +458,25 @@ export default function Checkout() {
                   <MessageSquare className="w-4 h-4" />
                 </div>
                 <span>SMS Link</span>
+                {quotas && (
+                  <span className={`text-[9px] font-mono font-black px-1.5 py-0.2 rounded ${
+                    quotas.isSmsGloballyEnabled === false
+                      ? 'bg-amber-100 text-amber-800'
+                      : quotas.smsBalance <= 0
+                      ? 'bg-rose-100 text-rose-800'
+                      : deliveryMethod === 'SMS'
+                      ? 'bg-white/20 text-white'
+                      : 'bg-indigo-50 text-indigo-700'
+                  }`}>
+                    {quotas.isSmsGloballyEnabled === false ? 'Paused' : `${quotas.smsBalance} left`}
+                  </span>
+                )}
               </button>
 
               <button
                 type="button"
                 onClick={() => setDeliveryMethod('WHATSAPP')}
-                className={`py-3 px-2 rounded-2xl border text-xs font-bold flex flex-col items-center gap-1.5 transition-all active:scale-95 ${
+                className={`py-3 px-2 rounded-2xl border text-xs font-bold flex flex-col items-center gap-1 transition-all active:scale-95 ${
                   deliveryMethod === 'WHATSAPP'
                     ? 'bg-emerald-600 text-white border-emerald-600 shadow-lg shadow-emerald-600/25 ring-2 ring-emerald-300'
                     : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
@@ -461,6 +486,19 @@ export default function Checkout() {
                   <MessageCircle className="w-4 h-4" />
                 </div>
                 <span>WhatsApp</span>
+                {quotas && (
+                  <span className={`text-[9px] font-mono font-black px-1.5 py-0.2 rounded ${
+                    quotas.isWhatsAppGloballyEnabled === false
+                      ? 'bg-amber-100 text-amber-800'
+                      : quotas.whatsAppBalance <= 0
+                      ? 'bg-rose-100 text-rose-800'
+                      : deliveryMethod === 'WHATSAPP'
+                      ? 'bg-white/20 text-white'
+                      : 'bg-emerald-50 text-emerald-700'
+                  }`}>
+                    {quotas.isWhatsAppGloballyEnabled === false ? 'Paused' : `${quotas.whatsAppBalance} left`}
+                  </span>
+                )}
               </button>
 
               <button
@@ -482,27 +520,53 @@ export default function Checkout() {
 
           {/* Dynamic Final Submission Button */}
           {deliveryMethod === 'SMS' && (
-            <button
-              type="button"
-              disabled={generating}
-              onClick={handleFinalizeBill}
-              className="w-full py-4 bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white font-black text-xs rounded-2xl shadow-xl shadow-indigo-600/25 flex items-center justify-center gap-2 transition-all disabled:opacity-50"
-            >
-              <MessageSquare className="w-4 h-4" />
-              <span>{generating ? 'Saving & Sending SMS...' : `Save & Send SMS (₹${grandTotal.toFixed(2)})`}</span>
-            </button>
+            <div className="space-y-2">
+              {quotas?.isSmsGloballyEnabled === false && (
+                <div className="p-3 bg-amber-50 border border-amber-200 rounded-2xl text-[11px] text-amber-800">
+                  ⚠️ {quotas?.smsDisabledNotice || 'SMS service is temporarily paused by Admin for maintenance.'}
+                </div>
+              )}
+              {quotas && quotas.isSmsGloballyEnabled !== false && quotas.smsBalance <= 0 && (
+                <div className="p-3 bg-rose-50 border border-rose-200 rounded-2xl text-[11px] text-rose-800 flex items-center justify-between">
+                  <span>⚠️ Store SMS quota is 0.</span>
+                  <Link to="/subscription#booster-packs" className="font-bold underline text-indigo-700">Recharge Pack</Link>
+                </div>
+              )}
+              <button
+                type="button"
+                disabled={generating || quotas?.isSmsGloballyEnabled === false || (quotas && quotas.smsBalance <= 0)}
+                onClick={handleFinalizeBill}
+                className="w-full py-4 bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white font-black text-xs rounded-2xl shadow-xl shadow-indigo-600/25 flex items-center justify-center gap-2 transition-all disabled:opacity-50"
+              >
+                <MessageSquare className="w-4 h-4" />
+                <span>{generating ? 'Saving & Sending SMS...' : `Save & Send SMS (₹${grandTotal.toFixed(2)})`}</span>
+              </button>
+            </div>
           )}
 
           {deliveryMethod === 'WHATSAPP' && (
-            <button
-              type="button"
-              disabled={generating}
-              onClick={handleFinalizeBill}
-              className="w-full py-4 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-black text-xs rounded-2xl shadow-xl shadow-emerald-600/25 flex items-center justify-center gap-2 transition-all disabled:opacity-50"
-            >
-              <MessageCircle className="w-4 h-4" />
-              <span>{generating ? 'Saving & Opening WhatsApp...' : `Save & Send WhatsApp (₹${grandTotal.toFixed(2)})`}</span>
-            </button>
+            <div className="space-y-2">
+              {quotas?.isWhatsAppGloballyEnabled === false && (
+                <div className="p-3 bg-amber-50 border border-amber-200 rounded-2xl text-[11px] text-amber-800">
+                  ⚠️ {quotas?.whatsAppDisabledNotice || 'WhatsApp messaging is temporarily paused by Admin for maintenance.'}
+                </div>
+              )}
+              {quotas && quotas.isWhatsAppGloballyEnabled !== false && quotas.whatsAppBalance <= 0 && (
+                <div className="p-3 bg-rose-50 border border-rose-200 rounded-2xl text-[11px] text-rose-800 flex items-center justify-between">
+                  <span>⚠️ Store WhatsApp quota is 0.</span>
+                  <Link to="/subscription#booster-packs" className="font-bold underline text-emerald-700">Recharge Pack</Link>
+                </div>
+              )}
+              <button
+                type="button"
+                disabled={generating || quotas?.isWhatsAppGloballyEnabled === false || (quotas && quotas.whatsAppBalance <= 0)}
+                onClick={handleFinalizeBill}
+                className="w-full py-4 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-black text-xs rounded-2xl shadow-xl shadow-emerald-600/25 flex items-center justify-center gap-2 transition-all disabled:opacity-50"
+              >
+                <MessageCircle className="w-4 h-4" />
+                <span>{generating ? 'Saving & Opening WhatsApp...' : `Save & Send WhatsApp (₹${grandTotal.toFixed(2)})`}</span>
+              </button>
+            </div>
           )}
 
           {deliveryMethod === 'PRINT' && (
