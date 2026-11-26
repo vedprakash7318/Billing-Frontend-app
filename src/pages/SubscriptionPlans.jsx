@@ -548,37 +548,25 @@ export default function SubscriptionPlans() {
                     )}
                   </div>
 
-                  <div className="flex items-baseline justify-between pt-1">
-                    <div>
-                      <span className="text-2xl font-black text-slate-950 font-mono">
+                  <div className="pt-1">
+                    <div className="flex flex-wrap items-baseline gap-1.5">
+                      <span className="text-2xl sm:text-3xl font-black text-slate-950 font-mono tracking-tight">
                         {quotas.smsBalance}
                       </span>
-                      <span className="text-xs font-bold text-slate-400 ml-1">Total Available</span>
-                    </div>
-                    {quotas.smsTotalCredited > 0 && (
-                      <span className="text-[10px] text-slate-400 font-medium">
-                        of {quotas.smsTotalCredited} total
+                      <span className="text-xs font-black text-indigo-700">
+                        Message ({quotas.smsPlanBalance || 0}+{quotas.smsBoosterBalance || 0})
                       </span>
-                    )}
-                  </div>
-
-                  {/* Quota Breakdown: Plan Quota vs Lifetime Booster */}
-                  <div className="grid grid-cols-2 gap-1.5 pt-1">
-                    <div className="bg-white rounded-xl p-2 border border-slate-200 text-center shadow-2xs">
-                      <span className="text-[9px] font-bold text-slate-400 block uppercase">1st: Main Plan</span>
-                      <span className="text-xs font-black text-slate-800 font-mono">{quotas.smsPlanBalance || 0}</span>
-                      <span className="text-[8px] text-slate-400 block">plan expiry</span>
                     </div>
-                    <div className="bg-indigo-50/70 rounded-xl p-2 border border-indigo-200 text-center shadow-2xs">
-                      <span className="text-[9px] font-black text-indigo-600 block uppercase">2nd: Booster</span>
-                      <span className="text-xs font-black text-indigo-950 font-mono">{quotas.smsBoosterBalance || 0}</span>
-                      <span className="text-[8px] text-indigo-600 block font-bold">♾️ Never Expires</span>
+
+                    <div className="flex items-center justify-between text-[11px] text-slate-500 mt-1">
+                      <span className="font-medium">
+                        {quotas.smsPlanBalance || 0} main message + {quotas.smsBoosterBalance || 0} booster
+                      </span>
+                      {quotas.smsTotalCredited > 0 && (
+                        <span className="text-slate-400">of {quotas.smsTotalCredited} total</span>
+                      )}
                     </div>
                   </div>
-
-                  <p className="text-[10px] text-slate-500 leading-tight">
-                    ⚡ Priority: Pehle plan quota use hoga. Booster balance plan renew hone par naye plan me add ho jayega.
-                  </p>
 
                   {quotas.isSmsGloballyEnabled === false && quotas.smsDisabledNotice && (
                     <p className="text-[10px] text-amber-700 bg-amber-50 p-2 rounded-xl border border-amber-200">
@@ -607,37 +595,25 @@ export default function SubscriptionPlans() {
                     )}
                   </div>
 
-                  <div className="flex items-baseline justify-between pt-1">
-                    <div>
-                      <span className="text-2xl font-black text-slate-950 font-mono">
+                  <div className="pt-1">
+                    <div className="flex flex-wrap items-baseline gap-1.5">
+                      <span className="text-2xl sm:text-3xl font-black text-slate-950 font-mono tracking-tight">
                         {quotas.whatsAppBalance}
                       </span>
-                      <span className="text-xs font-bold text-slate-400 ml-1">Total Available</span>
-                    </div>
-                    {quotas.whatsAppTotalCredited > 0 && (
-                      <span className="text-[10px] text-slate-400 font-medium">
-                        of {quotas.whatsAppTotalCredited} total
+                      <span className="text-xs font-black text-emerald-700">
+                        Message ({quotas.whatsAppPlanBalance || 0}+{quotas.whatsAppBoosterBalance || 0})
                       </span>
-                    )}
-                  </div>
-
-                  {/* Quota Breakdown: Plan Quota vs Lifetime Booster */}
-                  <div className="grid grid-cols-2 gap-1.5 pt-1">
-                    <div className="bg-white rounded-xl p-2 border border-slate-200 text-center shadow-2xs">
-                      <span className="text-[9px] font-bold text-slate-400 block uppercase">1st: Main Plan</span>
-                      <span className="text-xs font-black text-slate-800 font-mono">{quotas.whatsAppPlanBalance || 0}</span>
-                      <span className="text-[8px] text-slate-400 block">plan expiry</span>
                     </div>
-                    <div className="bg-emerald-50/70 rounded-xl p-2 border border-emerald-200 text-center shadow-2xs">
-                      <span className="text-[9px] font-black text-emerald-700 block uppercase">2nd: Booster</span>
-                      <span className="text-xs font-black text-emerald-950 font-mono">{quotas.whatsAppBoosterBalance || 0}</span>
-                      <span className="text-[8px] text-emerald-700 block font-bold">♾️ Never Expires</span>
+
+                    <div className="flex items-center justify-between text-[11px] text-slate-500 mt-1">
+                      <span className="font-medium">
+                        {quotas.whatsAppPlanBalance || 0} main message + {quotas.whatsAppBoosterBalance || 0} booster
+                      </span>
+                      {quotas.whatsAppTotalCredited > 0 && (
+                        <span className="text-slate-400">of {quotas.whatsAppTotalCredited} total</span>
+                      )}
                     </div>
                   </div>
-
-                  <p className="text-[10px] text-slate-500 leading-tight">
-                    ⚡ Priority: Pehle plan quota use hoga. Booster balance plan renew hone par naye plan me add ho jayega.
-                  </p>
 
                   {quotas.isWhatsAppGloballyEnabled === false && quotas.whatsAppDisabledNotice && (
                     <p className="text-[10px] text-amber-700 bg-amber-50 p-2 rounded-xl border border-amber-200">
