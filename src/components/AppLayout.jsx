@@ -133,13 +133,14 @@ export default function AppLayout({
           </div>
 
           <div className="flex items-center gap-2 shrink-0">
-            {actionButton ? (
-              actionButton
-            ) : (
-              <span className="text-[10px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200/80 shadow-2xs">
-                Live POS
-              </span>
-            )}
+            {actionButton}
+            <Link
+              to="/profile"
+              className="w-8 h-8 rounded-xl bg-slate-100 hover:bg-emerald-50 text-slate-700 hover:text-emerald-700 border border-slate-200/80 flex items-center justify-center font-bold text-xs shadow-2xs active:scale-95 transition-all"
+              title="Admin Profile"
+            >
+              <User className="w-4 h-4" />
+            </Link>
           </div>
         </header>
 
