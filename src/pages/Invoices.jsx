@@ -5,12 +5,7 @@ import {
   Receipt,
   Search,
   Printer,
-  ChevronLeft,
-  ChevronRight,
-  User,
-  Calendar,
   X,
-  CreditCard,
   Plus,
   Download,
 } from 'lucide-react';
@@ -119,15 +114,14 @@ export default function Invoices() {
                         #{inv.invoiceNumber}
                       </span>
                       <span
-                        className={`text-[9px] font-black px-2 py-0.5 rounded-md uppercase tracking-wider ${
-                          inv.paymentMode === 'CASH'
-                            ? 'bg-emerald-50 text-emerald-700 border border-emerald-200/60'
-                            : inv.paymentMode === 'UPI'
+                        className={`text-[9px] font-black px-2 py-0.5 rounded-md uppercase tracking-wider ${inv.paymentMode === 'CASH'
+                          ? 'bg-emerald-50 text-emerald-700 border border-emerald-200/60'
+                          : inv.paymentMode === 'UPI'
                             ? 'bg-purple-50 text-purple-700 border border-purple-200/60'
                             : inv.paymentMode === 'CARD'
-                            ? 'bg-blue-50 text-blue-700 border border-blue-200/60'
-                            : 'bg-slate-100 text-slate-700 border border-slate-200'
-                        }`}
+                              ? 'bg-blue-50 text-blue-700 border border-blue-200/60'
+                              : 'bg-slate-100 text-slate-700 border border-slate-200'
+                          }`}
                       >
                         {inv.paymentMode}
                       </span>
@@ -164,17 +158,18 @@ export default function Invoices() {
                   </div>
                 </div>
 
-                {/* 3. Footer: Billed By Cashier & Action Buttons */}
+                {/* 3. Footer: Employee Name & Action Buttons */}
                 <div className="flex items-center justify-between gap-2 pt-1 border-t border-dashed border-slate-100">
-                  <div className="flex items-center gap-1.5 text-[10px] text-slate-500 min-w-0 truncate">
+                  <div className="flex items-center gap-1.5 text-xs text-slate-700 min-w-0 truncate">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
-                    <span className="text-slate-400">Billed by:</span>
-                    <span className="font-bold text-slate-700 truncate">
+                    <span className="font-bold text-slate-800 truncate">
                       {inv.billedBy?.name || 'Store Admin'}
                     </span>
-                    <span className="text-[9px] px-1.5 py-0.2 bg-slate-100 text-slate-600 rounded-md font-semibold shrink-0">
-                      {inv.billedBy?.designation || inv.billedBy?.role || 'Staff'}
-                    </span>
+                    {(inv.billedBy?.designation || inv.billedBy?.role) && (
+                      <span className="text-[9px] px-1.5 py-0.2 bg-slate-100 text-slate-500 rounded font-medium shrink-0">
+                        {inv.billedBy?.designation || inv.billedBy?.role}
+                      </span>
+                    )}
                   </div>
 
                   <div className="flex items-center gap-1.5 shrink-0">
@@ -213,7 +208,7 @@ export default function Invoices() {
         {selectedInvoice && (
           <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4">
             <div className="bg-white rounded-3xl w-full max-w-sm max-h-[90vh] flex flex-col shadow-2xl overflow-hidden border border-slate-200">
-              
+
               {/* Clean Modal Header */}
               <div className="px-4 py-3 bg-white border-b border-slate-100 flex items-center justify-between shrink-0">
                 <div className="flex items-center gap-2">
@@ -356,7 +351,7 @@ export default function Invoices() {
                   className="flex-1 py-2.5 bg-indigo-50 hover:bg-indigo-100 active:scale-95 text-indigo-700 border border-indigo-200/80 text-xs font-bold rounded-xl flex items-center justify-center gap-1.5 transition-all"
                 >
                   <Download className="w-3.5 h-3.5" />
-                  <span>Download PDF</span>
+                  <span>PDF</span>
                 </button>
                 <button
                   type="button"
