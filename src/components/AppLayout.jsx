@@ -9,12 +9,8 @@ import {
   ChevronLeft,
   Plus,
   X,
-  Users,
-  Printer,
   History,
   Sparkles,
-  HelpCircle,
-  CreditCard,
   Tag,
   AlertTriangle,
 } from 'lucide-react';
@@ -70,11 +66,18 @@ export default function AppLayout({
 
   const shortcuts = [
     {
-      label: 'Create Bill (POS)',
+      label: 'New Bill',
       path: '/billing',
       icon: Receipt,
-      desc: 'Quick sales invoice & print',
+      desc: 'Quick sales invoice & POS',
       color: 'bg-emerald-500 text-white',
+    },
+    {
+      label: 'Past Bills',
+      path: '/invoices',
+      icon: History,
+      desc: 'Sales reports & reprint',
+      color: 'bg-amber-500 text-white',
     },
     {
       label: 'Add Product',
@@ -89,41 +92,6 @@ export default function AppLayout({
       icon: Tag,
       desc: 'Group items into catalog',
       color: 'bg-blue-500 text-white',
-    },
-    {
-      label: 'Add Employee',
-      path: '/employees/new',
-      icon: Users,
-      desc: 'Cashier & staff login account',
-      color: 'bg-indigo-500 text-white',
-    },
-    {
-      label: 'Subscription Plans',
-      path: '/subscription',
-      icon: CreditCard,
-      desc: 'View & activate license plans',
-      color: 'bg-purple-500 text-white',
-    },
-    {
-      label: 'Thermal Receipt Settings',
-      path: '/bill-settings',
-      icon: Printer,
-      desc: 'Header, footer & GST details',
-      color: 'bg-slate-800 text-white',
-    },
-    {
-      label: 'Past Bills History',
-      path: '/invoices',
-      icon: History,
-      desc: 'Sales reports & reprints',
-      color: 'bg-amber-600 text-white',
-    },
-    {
-      label: 'Help & Support',
-      path: '/help',
-      icon: HelpCircle,
-      desc: 'Live WhatsApp & FAQs',
-      color: 'bg-rose-500 text-white',
     },
   ];
 
