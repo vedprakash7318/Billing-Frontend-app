@@ -5,7 +5,6 @@ import {
   Package,
   Save,
   AlertCircle,
-  RefreshCw,
   Sparkles,
   Layers,
   Tag,
@@ -13,7 +12,6 @@ import {
   Search,
   Check,
   ChevronDown,
-  Lock,
   Percent,
   Plus,
 } from 'lucide-react';
@@ -30,7 +28,6 @@ export default function ProductForm() {
   const [loadingCats, setLoadingCats] = useState(true);
   const [loading, setLoading] = useState(isEditing);
   const [saving, setSaving] = useState(false);
-  const [generatingCode, setGeneratingCode] = useState(false);
   const [showScanner, setShowScanner] = useState(false);
   const [error, setError] = useState('');
 
@@ -60,22 +57,18 @@ export default function ProductForm() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Load categories and auto-generate code on mount if new
+  // Load categories on mount
   useEffect(() => {
-    Promise.all([
-      api.get('/admin/categories'),
-      !isEditing ? api.get('/admin/products/generate-code') : Promise.resolve({ data: {} }),
-    ])
-      .then(([catsRes, codeRes]) => {
+    api
+      .get('/admin/categories')
+      .then((catsRes) => {
         const catList = catsRes.data?.data || [];
         setCategories(catList);
 
-        if (!isEditing) {
-          const autoCode = codeRes.data?.code || `PRD-${Date.now().toString().slice(-6)}`;
+        if (!isEditing && catList.length > 0) {
           setFormData((prev) => ({
             ...prev,
-            categoryId: catList[0]?.id || catList[0]?._id || '',
-            uniqueCode: autoCode,
+            categoryId: prev.categoryId || catList[0]?.id || catList[0]?._id || '',
           }));
         }
       })
@@ -108,22 +101,6 @@ export default function ProductForm() {
       })
       .finally(() => setLoading(false));
   }, [id, isEditing]);
-
-  const handleGenerateFreshCode = async () => {
-    setGeneratingCode(true);
-    try {
-      const res = await api.get('/admin/products/generate-code');
-      if (res.data?.code) {
-        setFormData((prev) => ({ ...prev, uniqueCode: res.data.code }));
-        toastSuccess(`New code generated: ${res.data.code}`);
-      }
-    } catch {
-      const fallback = `PRD-${Date.now().toString().slice(-6)}`;
-      setFormData((prev) => ({ ...prev, uniqueCode: fallback }));
-    } finally {
-      setGeneratingCode(false);
-    }
-  };
 
   // Discount calculation
   const numMrp = Number(formData.mrp) || 0;
@@ -248,40 +225,27 @@ export default function ProductForm() {
               />
             </div>
 
-            {/* Unique Code / SKU (Auto-generated - NON-EDITABLE / READ-ONLY) */}
+            {/* Unique Code / Barcode (Optional) */}
             <div>
               <div className="flex items-center justify-between mb-1">
                 <label className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
-                  <span>Unique Code / SKU (Auto) *</span>
-                  <span className="text-[10px] font-semibold text-slate-400 bg-slate-100 px-1.5 py-0.2 rounded flex items-center gap-0.5">
-                    <Lock className="w-2.5 h-2.5" />
-                    <span>Auto</span>
+                  <span>Unique Code / Barcode</span>
+                  <span className="text-[10px] font-semibold text-slate-400">
+                    (Optional)
                   </span>
                 </label>
-                <button
-                  type="button"
-                  onClick={handleGenerateFreshCode}
-                  disabled={generatingCode}
-                  className="text-[11px] font-bold text-emerald-600 hover:text-emerald-800 flex items-center gap-1 active:scale-95 transition-all"
-                >
-                  <RefreshCw className={`w-3 h-3 ${generatingCode ? 'animate-spin' : ''}`} />
-                  <span>Generate New</span>
-                </button>
               </div>
 
               <div className="flex items-center gap-2">
-                {/* READ ONLY NON-EDITABLE FIELD */}
-                <div className="relative flex-1">
-                  <input
-                    type="text"
-                    readOnly
-                    tabIndex={-1}
-                    value={formData.uniqueCode}
-                    className="w-full pl-3.5 pr-8 py-2.5 bg-slate-100 border border-slate-200 rounded-xl text-xs text-slate-700 font-mono font-bold uppercase select-all cursor-not-allowed"
-                    title="Auto-generated unique code (locked). Use 'Generate New' or 'Scan' to change."
-                  />
-                  <Lock className="w-3.5 h-3.5 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-                </div>
+                <input
+                  type="text"
+                  placeholder="Enter barcode or leave blank to auto-generate..."
+                  value={formData.uniqueCode}
+                  onChange={(e) =>
+                    setFormData({ ...formData, uniqueCode: e.target.value.toUpperCase() })
+                  }
+                  className="flex-1 px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 font-mono font-bold uppercase focus:outline-none focus:border-emerald-500 focus:bg-white transition-all"
+                />
 
                 <button
                   type="button"
@@ -293,9 +257,6 @@ export default function ProductForm() {
                   <span>Scan</span>
                 </button>
               </div>
-              <p className="text-[10px] text-slate-400 mt-1">
-                Auto-assigned unique barcode/SKU. Non-editable manually. Tap 'Scan' to capture packaging barcode.
-              </p>
             </div>
 
             {/* MRP & Selling Price (Both inputs with Live Discount Calculation) */}
