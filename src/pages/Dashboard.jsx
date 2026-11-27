@@ -5,18 +5,9 @@ import {
   TrendingUp,
   TrendingDown,
   Receipt,
-  Smartphone,
-  MessageSquare,
   AlertTriangle,
-  Clock,
-  ArrowRight,
-  DollarSign,
-  Calendar,
   BarChart3,
-  Percent,
   CreditCard,
-  Plus,
-  Coins,
   FileSpreadsheet,
 } from 'lucide-react';
 import api from '../services/api';
@@ -127,41 +118,37 @@ export default function Dashboard() {
           <div className="grid grid-cols-4 w-full gap-1 text-xs font-bold">
             <button
               onClick={() => setTimeframe('day')}
-              className={`py-1.5 rounded-xl transition-all ${
-                timeframe === 'day'
+              className={`py-1.5 rounded-xl transition-all ${timeframe === 'day'
                   ? 'bg-slate-900 text-white font-black shadow-xs'
                   : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
-              }`}
+                }`}
             >
               Day
             </button>
             <button
               onClick={() => setTimeframe('week')}
-              className={`py-1.5 rounded-xl transition-all ${
-                timeframe === 'week'
+              className={`py-1.5 rounded-xl transition-all ${timeframe === 'week'
                   ? 'bg-slate-900 text-white font-black shadow-xs'
                   : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
-              }`}
+                }`}
             >
               Week
             </button>
             <button
               onClick={() => setTimeframe('month')}
-              className={`py-1.5 rounded-xl transition-all ${
-                timeframe === 'month'
+              className={`py-1.5 rounded-xl transition-all ${timeframe === 'month'
                   ? 'bg-slate-900 text-white font-black shadow-xs'
                   : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
-              }`}
+                }`}
             >
               Month
             </button>
             <button
               onClick={() => setTimeframe('year')}
-              className={`py-1.5 rounded-xl transition-all ${
-                timeframe === 'year'
+              className={`py-1.5 rounded-xl transition-all ${timeframe === 'year'
                   ? 'bg-slate-900 text-white font-black shadow-xs'
                   : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
-              }`}
+                }`}
             >
               Year
             </button>
@@ -187,9 +174,8 @@ export default function Dashboard() {
               <div className="flex items-center gap-1 mt-1 text-[10px] font-bold">
                 {timeframe === 'day' && periodStats.day && (
                   <span
-                    className={`inline-flex items-center gap-0.5 ${
-                      periodStats.day.growthPercent >= 0 ? 'text-emerald-700' : 'text-rose-700'
-                    }`}
+                    className={`inline-flex items-center gap-0.5 ${periodStats.day.growthPercent >= 0 ? 'text-emerald-700' : 'text-rose-700'
+                      }`}
                   >
                     {periodStats.day.growthPercent >= 0 ? (
                       <TrendingUp className="w-3 h-3" />
@@ -290,21 +276,19 @@ export default function Dashboard() {
               <div
                 className="h-full bg-emerald-500 transition-all duration-500"
                 style={{
-                  width: `${
-                    (periodStats.day.revenue + periodStats.day.prevRevenue) > 0
+                  width: `${(periodStats.day.revenue + periodStats.day.prevRevenue) > 0
                       ? Math.round((periodStats.day.revenue / (periodStats.day.revenue + periodStats.day.prevRevenue)) * 100)
                       : 50
-                  }%`,
+                    }%`,
                 }}
               />
               <div
                 className="h-full bg-slate-300 transition-all duration-500"
                 style={{
-                  width: `${
-                    (periodStats.day.revenue + periodStats.day.prevRevenue) > 0
+                  width: `${(periodStats.day.revenue + periodStats.day.prevRevenue) > 0
                       ? Math.round((periodStats.day.prevRevenue / (periodStats.day.revenue + periodStats.day.prevRevenue)) * 100)
                       : 50
-                  }%`,
+                    }%`,
                 }}
               />
             </div>
@@ -325,31 +309,28 @@ export default function Dashboard() {
             <div className="bg-slate-100 p-0.5 rounded-xl flex items-center text-[10px] font-bold">
               <button
                 onClick={() => setMetricType('sales')}
-                className={`px-2.5 py-1 rounded-lg transition-all ${
-                  metricType === 'sales'
+                className={`px-2.5 py-1 rounded-lg transition-all ${metricType === 'sales'
                     ? 'bg-white text-slate-950 font-black shadow-xs'
                     : 'text-slate-500 hover:text-slate-900'
-                }`}
+                  }`}
               >
                 ₹ Revenue
               </button>
               <button
                 onClick={() => setMetricType('count')}
-                className={`px-2.5 py-1 rounded-lg transition-all ${
-                  metricType === 'count'
+                className={`px-2.5 py-1 rounded-lg transition-all ${metricType === 'count'
                     ? 'bg-white text-slate-950 font-black shadow-xs'
                     : 'text-slate-500 hover:text-slate-900'
-                }`}
+                  }`}
               >
                 Bills Count
               </button>
               <button
                 onClick={() => setMetricType('profit')}
-                className={`px-2.5 py-1 rounded-lg transition-all ${
-                  metricType === 'profit'
+                className={`px-2.5 py-1 rounded-lg transition-all ${metricType === 'profit'
                     ? 'bg-white text-slate-950 font-black shadow-xs'
                     : 'text-slate-500 hover:text-slate-900'
-                }`}
+                  }`}
               >
                 Profit
               </button>
@@ -382,13 +363,12 @@ export default function Dashboard() {
                     onTouchStart={() => setHoveredPoint(d)}
                   >
                     <div
-                      className={`transition-all duration-300 w-full rounded-t-lg ${
-                        isHovered
+                      className={`transition-all duration-300 w-full rounded-t-lg ${isHovered
                           ? 'bg-gradient-to-t from-emerald-600 to-teal-400 shadow-md shadow-emerald-500/30'
                           : d.label === 'Today'
-                          ? 'bg-gradient-to-t from-emerald-500 to-teal-400'
-                          : 'bg-slate-200 group-hover:bg-emerald-300'
-                      }`}
+                            ? 'bg-gradient-to-t from-emerald-500 to-teal-400'
+                            : 'bg-slate-200 group-hover:bg-emerald-300'
+                        }`}
                       style={{ height: `${heightPercent}%` }}
                     />
                   </div>
@@ -405,9 +385,8 @@ export default function Dashboard() {
                 return (
                   <span
                     key={index}
-                    className={`flex-1 text-center truncate ${
-                      d.label === 'Today' ? 'text-emerald-700 font-black' : ''
-                    }`}
+                    className={`flex-1 text-center truncate ${d.label === 'Today' ? 'text-emerald-700 font-black' : ''
+                      }`}
                   >
                     {d.label}
                   </span>
@@ -432,9 +411,8 @@ export default function Dashboard() {
               <div key={idx} className="py-2 flex items-center justify-between gap-2">
                 <div className="flex items-center gap-2">
                   <span
-                    className={`font-bold ${
-                      row.label === 'Today' ? 'text-emerald-700 font-black' : 'text-slate-800'
-                    }`}
+                    className={`font-bold ${row.label === 'Today' ? 'text-emerald-700 font-black' : 'text-slate-800'
+                      }`}
                   >
                     {row.label}
                   </span>
@@ -475,13 +453,12 @@ export default function Dashboard() {
                   </div>
                   <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
                     <div
-                      className={`h-full rounded-full ${
-                        pm.mode === 'UPI'
+                      className={`h-full rounded-full ${pm.mode === 'UPI'
                           ? 'bg-emerald-500'
                           : pm.mode === 'Cash'
-                          ? 'bg-teal-500'
-                          : 'bg-indigo-500'
-                      }`}
+                            ? 'bg-teal-500'
+                            : 'bg-indigo-500'
+                        }`}
                       style={{ width: `${pm.percent}%` }}
                     />
                   </div>

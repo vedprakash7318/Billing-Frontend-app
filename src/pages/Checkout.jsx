@@ -22,9 +22,30 @@ import {
   Sparkles,
   ArrowLeft,
   Share2,
+  Smartphone,
+  Landmark,
+  FileText,
+  Tag,
+  Wallet,
 } from 'lucide-react';
 import api from '../services/api';
 import { toastSuccess, toastError } from '../utils/alerts';
+
+const ICON_MAP = {
+  Banknote,
+  QrCode,
+  CreditCard,
+  BookOpen,
+  Smartphone,
+  Landmark,
+  FileText,
+  Tag,
+  Wallet,
+};
+
+function getModeIcon(iconName) {
+  return ICON_MAP[iconName] || CreditCard;
+}
 
 export default function Checkout() {
   const navigate = useNavigate();
@@ -48,8 +69,25 @@ export default function Checkout() {
   const [printedInvoice, setPrintedInvoice] = useState(null);
   const [showResultModal, setShowResultModal] = useState(false);
   const [quotas, setQuotas] = useState(null);
+  const [paymentModes, setPaymentModes] = useState([]);
 
   useEffect(() => {
+    // 1. Load store active payment modes
+    api
+      .get('/admin/payment-modes')
+      .then((res) => {
+        if (res.data?.data) {
+          const activeModes = res.data.data.filter((m) => m.isActive);
+          setPaymentModes(activeModes);
+          const defaultMode = activeModes.find((m) => m.isDefault) || activeModes[0];
+          if (defaultMode) {
+            setPaymentMode(defaultMode.code);
+          }
+        }
+      })
+      .catch((err) => console.error('Failed to load payment modes:', err));
+
+    // 2. Load quota statuses
     api
       .get('/admin/subscription')
       .then((res) => {
@@ -188,13 +226,6 @@ export default function Checkout() {
       </AppLayout>
     );
   }
-
-  const paymentModes = [
-    { id: 'CASH', label: 'Cash', icon: Banknote, color: 'text-emerald-600' },
-    { id: 'UPI', label: 'UPI / QR', icon: QrCode, color: 'text-purple-600' },
-    { id: 'CARD', label: 'Card', icon: CreditCard, color: 'text-blue-600' },
-    { id: 'CREDIT', label: 'Credit (Khata)', icon: BookOpen, color: 'text-amber-600' },
-  ];
 
   return (
     <AppLayout
@@ -414,36 +445,51 @@ export default function Checkout() {
           
           {/* Payment Mode Selector */}
           <div>
-            <label className="block text-[11px] font-black text-slate-600 mb-2 uppercase tracking-wider">
-              Payment Mode
-            </label>
-            <div className="grid grid-cols-2 gap-2">
-              {paymentModes.map((m) => {
-                const Icon = m.icon;
-                const isSelected = paymentMode === m.id;
-                return (
-                  <button
-                    key={m.id}
-                    type="button"
-                    onClick={() => setPaymentMode(m.id)}
-                    className={`p-2.5 rounded-2xl border text-xs font-bold flex items-center gap-2.5 transition-all active:scale-95 ${
-                      isSelected
-                        ? 'bg-slate-950 text-white border-slate-950 shadow-md'
-                        : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
-                    }`}
-                  >
-                    <div
-                      className={`w-7 h-7 rounded-xl flex items-center justify-center ${
-                        isSelected ? 'bg-white/10 text-emerald-400' : 'bg-white text-slate-600 shadow-2xs'
+            <div className="flex items-center justify-between mb-2">
+              <label className="block text-[11px] font-black text-slate-600 uppercase tracking-wider">
+                Payment Mode
+              </label>
+              <Link
+                to="/bill-settings"
+                className="text-[10px] font-bold text-emerald-700 hover:text-emerald-800 flex items-center gap-1"
+              >
+                <span>⚙️ Manage Modes</span>
+              </Link>
+            </div>
+
+            {paymentModes.length === 0 ? (
+              <div className="p-3 bg-slate-50 rounded-2xl text-xs text-slate-400 text-center">
+                Loading store payment modes...
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 gap-2">
+                {paymentModes.map((m) => {
+                  const Icon = getModeIcon(m.icon);
+                  const isSelected = paymentMode === m.code;
+                  return (
+                    <button
+                      key={m.id || m.code}
+                      type="button"
+                      onClick={() => setPaymentMode(m.code)}
+                      className={`p-2.5 rounded-2xl border text-xs font-bold flex items-center gap-2.5 transition-all active:scale-95 ${
+                        isSelected
+                          ? 'bg-slate-950 text-white border-slate-950 shadow-md'
+                          : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
                       }`}
                     >
-                      <Icon className="w-4 h-4" />
-                    </div>
-                    <span className="font-extrabold">{m.label}</span>
-                  </button>
-                );
-              })}
-            </div>
+                      <div
+                        className={`w-7 h-7 rounded-xl flex items-center justify-center shrink-0 ${
+                          isSelected ? 'bg-white/10 text-emerald-400' : 'bg-white text-slate-600 shadow-2xs'
+                        }`}
+                      >
+                        <Icon className="w-4 h-4" />
+                      </div>
+                      <span className="font-extrabold truncate">{m.name}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
           </div>
 
           {/* 3 Receipt Options: SMS, WhatsApp, Print */}

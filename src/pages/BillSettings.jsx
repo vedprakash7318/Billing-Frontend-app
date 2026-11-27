@@ -11,14 +11,43 @@ import {
   Phone,
   FileText,
   AlertCircle,
+  CreditCard,
+  Banknote,
+  QrCode,
+  BookOpen,
+  Smartphone,
+  Landmark,
+  Tag,
+  Plus,
+  Trash2,
+  Check,
+  ToggleLeft,
+  ToggleRight,
+  Wallet,
 } from 'lucide-react';
 import api from '../services/api';
-import { toastSuccess, toastError } from '../utils/alerts';
+import { toastSuccess, toastError, confirmDialog } from '../utils/alerts';
+
+const ICON_MAP = {
+  Banknote,
+  QrCode,
+  CreditCard,
+  BookOpen,
+  Smartphone,
+  Landmark,
+  FileText,
+  Tag,
+  Wallet,
+};
+
+function getModeIcon(iconName) {
+  return ICON_MAP[iconName] || CreditCard;
+}
 
 export default function BillSettings() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [activeTab, setActiveTab] = useState('HEADER'); // 'HEADER' | 'FOOTER' | 'PREVIEW'
+  const [activeTab, setActiveTab] = useState('HEADER'); // 'HEADER' | 'FOOTER' | 'PAYMENT_MODES' | 'PREVIEW'
 
   const [settings, setSettings] = useState({
     headerTitle: 'TAX INVOICE',
@@ -39,16 +68,34 @@ export default function BillSettings() {
     paperSize: 'THERMAL_80MM',
   });
 
+  // Payment Modes State
+  const [paymentModes, setPaymentModes] = useState([]);
+  const [suggestions, setSuggestions] = useState([]);
+  const [newModeName, setNewModeName] = useState('');
+  const [addingMode, setAddingMode] = useState(false);
+
+  const fetchSettingsAndModes = async () => {
+    try {
+      const [setRes, modeRes] = await Promise.all([
+        api.get('/admin/bill-settings'),
+        api.get('/admin/payment-modes'),
+      ]);
+      if (setRes.data?.data) {
+        setSettings((prev) => ({ ...prev, ...setRes.data.data }));
+      }
+      if (modeRes.data?.data) {
+        setPaymentModes(modeRes.data.data);
+        setSuggestions(modeRes.data.suggestions || []);
+      }
+    } catch (err) {
+      console.error('Error fetching settings/modes:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    api
-      .get('/admin/bill-settings')
-      .then((res) => {
-        if (res.data?.data) {
-          setSettings((prev) => ({ ...prev, ...res.data.data }));
-        }
-      })
-      .catch((err) => console.error(err))
-      .finally(() => setLoading(false));
+    fetchSettingsAndModes();
   }, []);
 
   const handleSave = async (e) => {
@@ -66,425 +113,593 @@ export default function BillSettings() {
     }
   };
 
+  // 1-Click Add from Suggestion
+  const handleAddSuggestion = async (sugg) => {
+    try {
+      const res = await api.post('/admin/payment-modes', {
+        name: sugg.name,
+        code: sugg.code,
+        icon: sugg.icon,
+        color: sugg.color,
+        description: sugg.description,
+      });
+      if (res.data?.success) {
+        toastSuccess(`Payment mode "${sugg.name}" added to your store!`);
+        // Refresh modes & suggestions
+        const refresh = await api.get('/admin/payment-modes');
+        if (refresh.data?.data) {
+          setPaymentModes(refresh.data.data);
+          setSuggestions(refresh.data.suggestions || []);
+        }
+      }
+    } catch (err) {
+      toastError(err.response?.data?.error || 'Failed to add payment mode');
+    }
+  };
+
+  // Create Custom Mode
+  const handleCreateCustom = async (e) => {
+    e.preventDefault();
+    if (!newModeName.trim()) return;
+    setAddingMode(true);
+    try {
+      const res = await api.post('/admin/payment-modes', {
+        name: newModeName.trim(),
+      });
+      if (res.data?.success) {
+        toastSuccess(`Payment mode "${newModeName.trim()}" created!`);
+        setNewModeName('');
+        const refresh = await api.get('/admin/payment-modes');
+        if (refresh.data?.data) {
+          setPaymentModes(refresh.data.data);
+          setSuggestions(refresh.data.suggestions || []);
+        }
+      }
+    } catch (err) {
+      toastError(err.response?.data?.error || 'Failed to create payment mode');
+    } finally {
+      setAddingMode(false);
+    }
+  };
+
+  // Toggle Mode Active/Inactive
+  const handleToggleMode = async (id) => {
+    try {
+      const res = await api.put(`/admin/payment-modes/${id}/toggle`);
+      if (res.data?.success) {
+        setPaymentModes((prev) =>
+          prev.map((m) => (m.id === id ? { ...m, isActive: res.data.data.isActive } : m))
+        );
+        toastSuccess(res.data.message);
+      }
+    } catch (err) {
+      toastError(err.response?.data?.error || 'Failed to toggle mode');
+    }
+  };
+
+  // Delete Payment Mode
+  const handleDeleteMode = async (id, name) => {
+    const confirmed = await confirmDialog({
+      title: `Delete "${name}"?`,
+      text: 'Are you sure you want to remove this payment mode from your store checkout?',
+      confirmText: 'Yes, Delete',
+    });
+    if (!confirmed) return;
+
+    try {
+      const res = await api.delete(`/admin/payment-modes/${id}`);
+      if (res.data?.success) {
+        toastSuccess(res.data.message);
+        const refresh = await api.get('/admin/payment-modes');
+        if (refresh.data?.data) {
+          setPaymentModes(refresh.data.data);
+          setSuggestions(refresh.data.suggestions || []);
+        }
+      }
+    } catch (err) {
+      toastError(err.response?.data?.error || 'Failed to delete payment mode');
+    }
+  };
+
   return (
     <AppLayout
-      title="Bill Print Settings"
-      subtitle="Header, Footer & Thermal Receipt"
-      backTo="/profile"
+      title="Store Bill & Payment Settings"
+      subtitle="Header, Footer, Paper Size & Payment Modes"
+      backTo="/store"
       actionButton={
-        <button
-          onClick={handleSave}
-          disabled={saving}
-          className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold flex items-center gap-1 shadow-sm disabled:opacity-50"
-        >
-          <Save className="w-3.5 h-3.5" />
-          <span>{saving ? 'Saving...' : 'Save'}</span>
-        </button>
+        activeTab !== 'PAYMENT_MODES' && (
+          <button
+            onClick={handleSave}
+            disabled={saving}
+            className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold flex items-center gap-1 shadow-sm disabled:opacity-50"
+          >
+            <Save className="w-3.5 h-3.5" />
+            <span>{saving ? 'Saving...' : 'Save'}</span>
+          </button>
+        )
       }
     >
       <div className="max-w-3xl mx-auto space-y-4">
-        {/* Navigation Tabs */}
-        <div className="grid grid-cols-3 gap-1 bg-slate-200/70 p-1 rounded-2xl">
+        {/* Navigation Tabs (Header | Footer | Payment Modes | Preview) */}
+        <div className="grid grid-cols-4 gap-1 bg-slate-200/70 p-1 rounded-2xl text-xs font-bold">
           <button
             type="button"
             onClick={() => setActiveTab('HEADER')}
-            className={`py-2 text-xs font-bold rounded-xl transition-all ${
+            className={`py-2 rounded-xl transition-all ${
               activeTab === 'HEADER'
-                ? 'bg-white text-slate-900 shadow-sm'
+                ? 'bg-white text-slate-900 shadow-sm font-black'
                 : 'text-slate-600 hover:text-slate-900'
             }`}
           >
-            Bill Header
+            Header
           </button>
           <button
             type="button"
             onClick={() => setActiveTab('FOOTER')}
-            className={`py-2 text-xs font-bold rounded-xl transition-all ${
+            className={`py-2 rounded-xl transition-all ${
               activeTab === 'FOOTER'
-                ? 'bg-white text-slate-900 shadow-sm'
+                ? 'bg-white text-slate-900 shadow-sm font-black'
                 : 'text-slate-600 hover:text-slate-900'
             }`}
           >
-            Bill Footer
+            Footer
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('PAYMENT_MODES')}
+            className={`py-2 rounded-xl transition-all flex items-center justify-center gap-1.5 ${
+              activeTab === 'PAYMENT_MODES'
+                ? 'bg-white text-slate-900 shadow-sm font-black'
+                : 'text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            <span>Payment Modes</span>
+            <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-emerald-100 text-emerald-800">
+              {paymentModes.filter((m) => m.isActive).length}
+            </span>
           </button>
           <button
             type="button"
             onClick={() => setActiveTab('PREVIEW')}
-            className={`py-2 text-xs font-bold rounded-xl transition-all ${
+            className={`py-2 rounded-xl transition-all ${
               activeTab === 'PREVIEW'
-                ? 'bg-white text-slate-900 shadow-sm'
+                ? 'bg-white text-slate-900 shadow-sm font-black'
                 : 'text-slate-600 hover:text-slate-900'
             }`}
           >
-            Live Preview
+            Preview
           </button>
         </div>
 
         {loading ? (
-          <div className="py-20 text-center text-xs text-slate-400">Loading bill configuration...</div>
+          <div className="py-20 text-center text-xs text-slate-400">Loading settings...</div>
         ) : (
-          <form onSubmit={handleSave} className="space-y-4">
+          <div>
             {/* TAB 1: HEADER SETTINGS */}
             {activeTab === 'HEADER' && (
-              <div className="bg-white rounded-3xl p-5 border border-slate-200/80 shadow-sm space-y-4">
-                <div className="pb-3 border-b border-slate-100 flex items-center gap-2">
-                  <div className="p-2 bg-emerald-50 text-emerald-600 rounded-xl">
-                    <Receipt className="w-4 h-4" />
-                  </div>
-                  <div>
+              <form onSubmit={handleSave} className="space-y-4">
+                <div className="bg-white rounded-3xl p-5 border border-slate-200/80 shadow-sm space-y-4">
+                  <div className="pb-3 border-b border-slate-100 flex items-center gap-2">
+                    <Store className="w-4 h-4 text-emerald-600" />
                     <h3 className="text-xs font-black uppercase tracking-wider text-slate-900">
-                      Receipt Header Content
+                      Receipt Header Configuration
                     </h3>
-                    <p className="text-[11px] text-slate-500">
-                      Printed at the top of every customer invoice
-                    </p>
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">
-                    Invoice Top Title *
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="e.g. TAX INVOICE / RETAIL CASH MEMO"
-                    value={settings.headerTitle}
-                    onChange={(e) => setSettings({ ...settings, headerTitle: e.target.value })}
-                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 uppercase focus:outline-none focus:border-emerald-500 focus:bg-white"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">
-                    Business / Store Name on Bill *
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="e.g. Mahavir Supermarket"
-                    value={settings.businessName}
-                    onChange={(e) => setSettings({ ...settings, businessName: e.target.value })}
-                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-black text-slate-900 focus:outline-none focus:border-emerald-500 focus:bg-white"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">
-                    Tagline / Subheading
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="e.g. Quality Groceries & Daily Needs"
-                    value={settings.tagline}
-                    onChange={(e) => setSettings({ ...settings, tagline: e.target.value })}
-                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700 focus:outline-none focus:border-emerald-500 focus:bg-white"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">
-                    Store Address on Bill
-                  </label>
-                  <textarea
-                    rows={2}
-                    placeholder="e.g. Shop #4, Market Yard, Pune - 411037"
-                    value={settings.address}
-                    onChange={(e) => setSettings({ ...settings, address: e.target.value })}
-                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700 focus:outline-none focus:border-emerald-500 focus:bg-white"
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">
-                      Billing Phone / Mobile
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="+91 9876543210"
-                      value={settings.phone}
-                      onChange={(e) => setSettings({ ...settings, phone: e.target.value })}
-                      className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-emerald-500 focus:bg-white"
-                    />
                   </div>
 
                   <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">
-                      GSTIN / Tax ID
-                    </label>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">Receipt Header Title</label>
                     <input
                       type="text"
-                      placeholder="27AABCT3518Q1ZY"
-                      value={settings.gstin}
-                      onChange={(e) => setSettings({ ...settings, gstin: e.target.value.toUpperCase() })}
-                      className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono uppercase text-slate-800 focus:outline-none focus:border-emerald-500 focus:bg-white"
+                      value={settings.headerTitle}
+                      onChange={(e) => setSettings({ ...settings, headerTitle: e.target.value })}
+                      placeholder="TAX INVOICE / RETAIL INVOICE"
+                      className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-900 focus:outline-none focus:border-emerald-500"
                     />
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1">Business / Store Name</label>
+                      <input
+                        type="text"
+                        value={settings.businessName}
+                        onChange={(e) => setSettings({ ...settings, businessName: e.target.value })}
+                        placeholder="Apex Mega Mart"
+                        className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-900 focus:outline-none focus:border-emerald-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1">Tagline / Motto</label>
+                      <input
+                        type="text"
+                        value={settings.tagline}
+                        onChange={(e) => setSettings({ ...settings, tagline: e.target.value })}
+                        placeholder="Best Quality Groceries & Household Needs"
+                        className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-900 focus:outline-none focus:border-emerald-500"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">Store Address (Printed on Receipt)</label>
+                    <textarea
+                      rows={2}
+                      value={settings.address}
+                      onChange={(e) => setSettings({ ...settings, address: e.target.value })}
+                      placeholder="Shop 101, Central Market, MG Road, Mumbai"
+                      className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-900 focus:outline-none focus:border-emerald-500"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1">Contact Phone</label>
+                      <input
+                        type="text"
+                        value={settings.phone}
+                        onChange={(e) => setSettings({ ...settings, phone: e.target.value })}
+                        placeholder="+91 9876543210"
+                        className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-900 focus:outline-none focus:border-emerald-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1">Store GSTIN</label>
+                      <input
+                        type="text"
+                        value={settings.gstin}
+                        onChange={(e) => setSettings({ ...settings, gstin: e.target.value.toUpperCase() })}
+                        placeholder="27AABCT3518Q1ZY"
+                        className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono font-medium text-slate-900 uppercase focus:outline-none focus:border-emerald-500"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Print Visibility Toggles */}
+                  <div className="pt-2 border-t border-slate-100 space-y-2">
+                    <span className="text-[11px] font-bold text-slate-500 block uppercase">Show on Print:</span>
+                    <div className="flex flex-wrap gap-4 text-xs font-bold text-slate-700">
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={settings.showAddress}
+                          onChange={(e) => setSettings({ ...settings, showAddress: e.target.checked })}
+                          className="rounded text-emerald-600 focus:ring-emerald-500"
+                        />
+                        <span>Print Address</span>
+                      </label>
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={settings.showPhone}
+                          onChange={(e) => setSettings({ ...settings, showPhone: e.target.checked })}
+                          className="rounded text-emerald-600 focus:ring-emerald-500"
+                        />
+                        <span>Print Phone</span>
+                      </label>
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={settings.showGstin}
+                          onChange={(e) => setSettings({ ...settings, showGstin: e.target.checked })}
+                          className="rounded text-emerald-600 focus:ring-emerald-500"
+                        />
+                        <span>Print GSTIN</span>
+                      </label>
+                    </div>
                   </div>
                 </div>
 
-                {/* Display Toggles */}
-                <div className="space-y-2 pt-2 border-t border-slate-100">
-                  <label className="flex items-center justify-between p-3 bg-slate-50 rounded-xl cursor-pointer">
-                    <span className="text-xs font-bold text-slate-700">Show Address on Receipt</span>
-                    <input
-                      type="checkbox"
-                      checked={settings.showAddress}
-                      onChange={(e) => setSettings({ ...settings, showAddress: e.target.checked })}
-                      className="w-4 h-4 text-emerald-600 rounded focus:ring-emerald-500"
-                    />
-                  </label>
-
-                  <label className="flex items-center justify-between p-3 bg-slate-50 rounded-xl cursor-pointer">
-                    <span className="text-xs font-bold text-slate-700">Show Phone Number on Receipt</span>
-                    <input
-                      type="checkbox"
-                      checked={settings.showPhone}
-                      onChange={(e) => setSettings({ ...settings, showPhone: e.target.checked })}
-                      className="w-4 h-4 text-emerald-600 rounded focus:ring-emerald-500"
-                    />
-                  </label>
-
-                  <label className="flex items-center justify-between p-3 bg-slate-50 rounded-xl cursor-pointer">
-                    <span className="text-xs font-bold text-slate-700">Show GSTIN Number on Receipt</span>
-                    <input
-                      type="checkbox"
-                      checked={settings.showGstin}
-                      onChange={(e) => setSettings({ ...settings, showGstin: e.target.checked })}
-                      className="w-4 h-4 text-emerald-600 rounded focus:ring-emerald-500"
-                    />
-                  </label>
-                </div>
-              </div>
+                <button
+                  type="submit"
+                  disabled={saving}
+                  className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-2xl shadow-md shadow-emerald-600/20 flex items-center justify-center gap-2"
+                >
+                  <Save className="w-4 h-4" />
+                  <span>{saving ? 'Saving...' : 'Save Header Configuration'}</span>
+                </button>
+              </form>
             )}
 
             {/* TAB 2: FOOTER SETTINGS */}
             {activeTab === 'FOOTER' && (
-              <div className="bg-white rounded-3xl p-5 border border-slate-200/80 shadow-sm space-y-4">
-                <div className="pb-3 border-b border-slate-100 flex items-center gap-2">
-                  <div className="p-2 bg-teal-50 text-teal-600 rounded-xl">
-                    <FileText className="w-4 h-4" />
-                  </div>
-                  <div>
+              <form onSubmit={handleSave} className="space-y-4">
+                <div className="bg-white rounded-3xl p-5 border border-slate-200/80 shadow-sm space-y-4">
+                  <div className="pb-3 border-b border-slate-100 flex items-center gap-2">
+                    <FileText className="w-4 h-4 text-emerald-600" />
                     <h3 className="text-xs font-black uppercase tracking-wider text-slate-900">
-                      Receipt Footer Content
+                      Receipt Footer & UPI QR Configuration
                     </h3>
-                    <p className="text-[11px] text-slate-500">
-                      Printed at the bottom of every customer invoice
-                    </p>
                   </div>
-                </div>
 
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">
-                    Customer Greeting / Footer Note
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="Thank You for Shopping With Us! Visit Again 🙏"
-                    value={settings.footerMessage}
-                    onChange={(e) => setSettings({ ...settings, footerMessage: e.target.value })}
-                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-800 focus:outline-none focus:border-emerald-500 focus:bg-white"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">
-                    Terms & Conditions (Lines printed at bottom)
-                  </label>
-                  <textarea
-                    rows={4}
-                    placeholder="1. Goods once sold cannot be returned.\n2. No refund without bill."
-                    value={settings.termsAndConditions}
-                    onChange={(e) => setSettings({ ...settings, termsAndConditions: e.target.value })}
-                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono text-slate-700 focus:outline-none focus:border-emerald-500 focus:bg-white"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">
-                    UPI Payment ID (Optional for UPI QR/text)
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="e.g. shopname@upi or 9876543210@paytm"
-                    value={settings.upiId}
-                    onChange={(e) => setSettings({ ...settings, upiId: e.target.value })}
-                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono text-slate-800 focus:outline-none focus:border-emerald-500 focus:bg-white"
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-3 pt-2 border-t border-slate-100">
                   <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">
-                      Signatory Text
-                    </label>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">UPI ID for Dynamic Payment QR</label>
                     <input
                       type="text"
-                      placeholder="Authorized Signatory"
-                      value={settings.authorizedSignatoryText}
-                      onChange={(e) => setSettings({ ...settings, authorizedSignatoryText: e.target.value })}
-                      className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-emerald-500 focus:bg-white"
+                      value={settings.upiId}
+                      onChange={(e) => setSettings({ ...settings, upiId: e.target.value.toLowerCase().trim() })}
+                      placeholder="merchantname@okaxis"
+                      className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono font-medium text-slate-900 focus:outline-none focus:border-emerald-500"
+                    />
+                    <p className="text-[10px] text-slate-400 mt-1">Printed on thermal receipts so customers can scan & pay</p>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">Thank You / Footer Note</label>
+                    <input
+                      type="text"
+                      value={settings.footerMessage}
+                      onChange={(e) => setSettings({ ...settings, footerMessage: e.target.value })}
+                      placeholder="Thank You for Shopping With Us! Visit Again 🙏"
+                      className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-900 focus:outline-none focus:border-emerald-500"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">
-                      Paper Size Format
-                    </label>
-                    <select
-                      value={settings.paperSize}
-                      onChange={(e) => setSettings({ ...settings, paperSize: e.target.value })}
-                      className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:outline-none focus:border-emerald-500 focus:bg-white"
-                    >
-                      <option value="THERMAL_80MM">Thermal 80mm (Standard POS)</option>
-                      <option value="THERMAL_58MM">Thermal 58mm (Small)</option>
-                      <option value="A4">A4 / Full Sheet</option>
-                    </select>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">Terms & Conditions</label>
+                    <textarea
+                      rows={3}
+                      value={settings.termsAndConditions}
+                      onChange={(e) => setSettings({ ...settings, termsAndConditions: e.target.value })}
+                      placeholder="1. Goods once sold cannot be returned without bill."
+                      className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-900 focus:outline-none focus:border-emerald-500 font-mono"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">Authorized Signatory Label</label>
+                    <input
+                      type="text"
+                      value={settings.authorizedSignatoryText}
+                      onChange={(e) => setSettings({ ...settings, authorizedSignatoryText: e.target.value })}
+                      placeholder="Authorized Signatory"
+                      className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-900 focus:outline-none focus:border-emerald-500"
+                    />
                   </div>
                 </div>
 
-                <label className="flex items-center justify-between p-3 bg-slate-50 rounded-xl cursor-pointer">
-                  <span className="text-xs font-bold text-slate-700">Show Signatory Box at Bottom</span>
-                  <input
-                    type="checkbox"
-                    checked={settings.showSignatory}
-                    onChange={(e) => setSettings({ ...settings, showSignatory: e.target.checked })}
-                    className="w-4 h-4 text-emerald-600 rounded focus:ring-emerald-500"
-                  />
-                </label>
+                <button
+                  type="submit"
+                  disabled={saving}
+                  className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-2xl shadow-md shadow-emerald-600/20 flex items-center justify-center gap-2"
+                >
+                  <Save className="w-4 h-4" />
+                  <span>{saving ? 'Saving...' : 'Save Footer Configuration'}</span>
+                </button>
+              </form>
+            )}
+
+            {/* TAB 3: PAYMENT MODES (ADMIN CUSTOM & 1-CLICK SUGGESTIONS) */}
+            {activeTab === 'PAYMENT_MODES' && (
+              <div className="space-y-4">
+                {/* 1-Click Suggestions Section */}
+                {suggestions.length > 0 && (
+                  <div className="bg-gradient-to-br from-emerald-50/60 via-teal-50/30 to-white rounded-3xl p-4 sm:p-5 border border-emerald-200/80 shadow-xs space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Sparkles className="w-4 h-4 text-emerald-600" />
+                        <h3 className="text-xs font-black uppercase tracking-wider text-slate-900">
+                          Suggested Payment Modes (1-Click Add)
+                        </h3>
+                      </div>
+                      <span className="text-[10px] text-emerald-700 font-bold bg-emerald-100/80 px-2 py-0.5 rounded-full">
+                        Tap to create instantly
+                      </span>
+                    </div>
+                    <p className="text-xs text-slate-600 font-medium">
+                      Admin apne counter ke liye niche diye gaye kisi bhi payment mode par click karke instant create kar sakta hai:
+                    </p>
+
+                    <div className="flex flex-wrap gap-2 pt-1">
+                      {suggestions.map((s) => {
+                        const Icon = getModeIcon(s.icon);
+                        return (
+                          <button
+                            key={s.code}
+                            type="button"
+                            onClick={() => handleAddSuggestion(s)}
+                            className="inline-flex items-center gap-2 px-3 py-2 bg-white hover:bg-emerald-600 hover:text-white border border-slate-200 hover:border-emerald-600 rounded-2xl text-xs font-bold text-slate-800 shadow-2xs transition-all active:scale-95 group"
+                          >
+                            <Icon className="w-3.5 h-3.5 text-emerald-600 group-hover:text-white transition-colors" />
+                            <span>+ {s.name}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* Create Custom Payment Mode Form */}
+                <form
+                  onSubmit={handleCreateCustom}
+                  className="bg-white rounded-3xl p-4 sm:p-5 border border-slate-200/80 shadow-xs space-y-3"
+                >
+                  <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+                    <h3 className="text-xs font-black uppercase tracking-wider text-slate-900 flex items-center gap-1.5">
+                      <Plus className="w-4 h-4 text-emerald-600" />
+                      <span>Create Custom Payment Mode</span>
+                    </h3>
+                    <span className="text-[10px] text-slate-400">Store-Specific / Multi-Tenant Safe</span>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      value={newModeName}
+                      onChange={(e) => setNewModeName(e.target.value)}
+                      placeholder="e.g. Sodexo Meal Card, Bajaj Finserv, GPay Soundbox..."
+                      className="flex-1 px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-900 focus:outline-none focus:border-emerald-500"
+                    />
+                    <button
+                      type="submit"
+                      disabled={addingMode || !newModeName.trim()}
+                      className="px-4 py-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold disabled:opacity-50 transition-all shrink-0"
+                    >
+                      {addingMode ? 'Adding...' : '+ Add Mode'}
+                    </button>
+                  </div>
+                </form>
+
+                {/* Current Active & Inactive Payment Modes */}
+                <div className="bg-white rounded-3xl p-4 sm:p-5 border border-slate-200/80 shadow-xs space-y-3">
+                  <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+                    <h3 className="text-xs font-black uppercase tracking-wider text-slate-900 flex items-center gap-1.5">
+                      <CreditCard className="w-4 h-4 text-emerald-600" />
+                      <span>Configured Store Payment Modes ({paymentModes.length})</span>
+                    </h3>
+                    <span className="text-[10px] text-slate-400">Controls modes shown in Checkout</span>
+                  </div>
+
+                  {paymentModes.length === 0 ? (
+                    <div className="py-8 text-center text-xs text-slate-400">No payment modes added yet.</div>
+                  ) : (
+                    <div className="space-y-2.5">
+                      {paymentModes.map((mode) => {
+                        const Icon = getModeIcon(mode.icon);
+                        return (
+                          <div
+                            key={mode.id}
+                            className={`p-3 rounded-2xl border flex items-center justify-between gap-3 transition-all ${
+                              mode.isActive
+                                ? 'bg-white border-slate-200/80 shadow-xs'
+                                : 'bg-slate-50/70 border-slate-200/40 opacity-60'
+                            }`}
+                          >
+                            <div className="flex items-center gap-3 min-w-0">
+                              <div
+                                className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
+                                  mode.isActive ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-200 text-slate-500'
+                                }`}
+                              >
+                                <Icon className="w-4 h-4" />
+                              </div>
+                              <div className="min-w-0">
+                                <div className="flex items-center gap-2">
+                                  <span className="font-extrabold text-xs text-slate-900 truncate">
+                                    {mode.name}
+                                  </span>
+                                  <span className="font-mono text-[10px] px-1.5 py-0.2 rounded bg-slate-100 text-slate-600 font-bold">
+                                    {mode.code}
+                                  </span>
+                                </div>
+                                <p className="text-[10px] text-slate-500 truncate mt-0.5">
+                                  {mode.description || 'Custom store payment option'}
+                                </p>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center gap-2 shrink-0">
+                              <button
+                                type="button"
+                                onClick={() => handleToggleMode(mode.id)}
+                                className={`px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all ${
+                                  mode.isActive
+                                    ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                                    : 'bg-slate-200 text-slate-600'
+                                }`}
+                              >
+                                {mode.isActive ? 'Active' : 'Disabled'}
+                              </button>
+
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteMode(mode.id, mode.name)}
+                                className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
+                                title="Delete payment mode"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
               </div>
             )}
 
-            {/* TAB 3: LIVE RECEIPT PREVIEW */}
+            {/* TAB 4: LIVE PREVIEW */}
             {activeTab === 'PREVIEW' && (
-              <div className="space-y-3">
-                <div className="p-3 bg-slate-900 text-white rounded-2xl flex items-center justify-between text-xs">
-                  <div className="flex items-center gap-2">
-                    <Printer className="w-4 h-4 text-emerald-400" />
-                    <span className="font-bold">Live Receipt Visualizer</span>
-                  </div>
-                  <span className="text-[10px] text-slate-400 font-mono">{settings.paperSize}</span>
+              <div className="bg-white rounded-3xl p-5 border border-slate-200/80 shadow-sm space-y-3">
+                <div className="pb-3 border-b border-slate-100 flex items-center justify-between">
+                  <h3 className="text-xs font-black uppercase tracking-wider text-slate-900">
+                    Thermal Print Preview (80mm)
+                  </h3>
+                  <button
+                    type="button"
+                    onClick={() => window.print()}
+                    className="px-3 py-1 bg-slate-900 text-white rounded-xl text-xs font-bold flex items-center gap-1"
+                  >
+                    <Printer className="w-3.5 h-3.5" />
+                    <span>Print Test</span>
+                  </button>
                 </div>
 
-                {/* Thermal Receipt Paper Card */}
-                <div className="bg-white rounded-2xl p-6 border-2 border-dashed border-slate-300 shadow-xl font-mono text-[11px] text-slate-800 space-y-3 max-w-sm mx-auto">
-                  {/* RECEIPT HEADER */}
+                {/* Receipt Mock */}
+                <div className="max-w-xs mx-auto p-4 bg-white border border-slate-300 rounded-2xl font-mono text-[11px] text-slate-900 space-y-3 shadow-xs">
                   <div className="text-center space-y-1 pb-3 border-b border-dashed border-slate-400">
-                    <p className="font-extrabold text-sm uppercase tracking-wide text-slate-950">
-                      {settings.headerTitle || 'TAX INVOICE'}
-                    </p>
-                    <h2 className="font-black text-base uppercase text-slate-950 leading-tight">
-                      {settings.businessName || 'MY STORE'}
-                    </h2>
-                    {settings.tagline && (
-                      <p className="text-[10px] text-slate-600 italic">{settings.tagline}</p>
-                    )}
+                    <p className="font-extrabold text-xs uppercase tracking-wide">{settings.headerTitle}</p>
+                    <h2 className="font-black text-sm uppercase">{settings.businessName || 'YOUR STORE NAME'}</h2>
+                    {settings.tagline && <p className="text-[10px] text-slate-600 italic">{settings.tagline}</p>}
                     {settings.showAddress && settings.address && (
                       <p className="text-[10px] text-slate-600 leading-tight">{settings.address}</p>
                     )}
                     {settings.showPhone && settings.phone && (
-                      <p className="text-[10px] text-slate-700 font-bold">Ph: {settings.phone}</p>
+                      <p className="text-[10px] text-slate-800 font-bold">Ph: {settings.phone}</p>
                     )}
                     {settings.showGstin && settings.gstin && (
                       <p className="text-[10px] text-slate-800 font-bold">GSTIN: {settings.gstin}</p>
                     )}
                   </div>
 
-                  {/* INVOICE META */}
                   <div className="flex justify-between text-[10px] py-1 border-b border-dashed border-slate-300">
                     <div>
-                      <p>Inv: INV-20261125-1048</p>
-                      <p>Customer: Ramesh Kumar</p>
+                      <p className="font-bold">Bill: INV-SAMPLE-101</p>
+                      <p>Customer: Walk-in Customer</p>
                     </div>
                     <div className="text-right">
-                      <p>Date: {new Date().toLocaleDateString('en-IN')}</p>
-                      <p>Time: 04:50 PM</p>
+                      <p>{new Date().toLocaleDateString('en-IN')}</p>
+                      <p className="font-bold text-emerald-700">CASH (PAID)</p>
                     </div>
                   </div>
 
-                  {/* SAMPLE ITEMS TABLE */}
-                  <div className="space-y-1.5 py-2 border-b border-dashed border-slate-400 text-[10px]">
-                    <div className="flex justify-between font-bold border-b border-slate-200 pb-1">
-                      <span>Item</span>
-                      <span>Qty x Rate</span>
-                      <span>Total</span>
+                  <div className="space-y-1 py-1 border-b border-dashed border-slate-400 text-[10px]">
+                    <div className="flex justify-between">
+                      <span>1. Cadbury Silk 60g</span>
+                      <span>1 x ₹85</span>
+                      <span>₹85.00</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="truncate max-w-[120px]">Basmati Rice 5kg</span>
-                      <span>1 x ₹350</span>
-                      <span className="font-bold">₹350.00</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="truncate max-w-[120px]">Tata Gold Tea 500g</span>
-                      <span>2 x ₹240</span>
-                      <span className="font-bold">₹480.00</span>
+                      <span>2. Amul Butter 100g</span>
+                      <span>2 x ₹56</span>
+                      <span>₹112.00</span>
                     </div>
                   </div>
 
-                  {/* TOTALS */}
-                  <div className="space-y-1 text-right text-[10px] pt-1">
-                    <div className="flex justify-between">
-                      <span className="text-slate-500">Subtotal:</span>
-                      <span>₹830.00</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-slate-500">Discount:</span>
-                      <span>- ₹30.00</span>
-                    </div>
-                    <div className="flex justify-between text-xs font-black text-slate-950 pt-1 border-t border-slate-800">
-                      <span>GRAND TOTAL:</span>
-                      <span>₹800.00</span>
-                    </div>
-                    <div className="flex justify-between text-[10px] text-slate-600">
-                      <span>Payment Mode:</span>
-                      <span className="font-bold">CASH (PAID)</span>
+                  <div className="space-y-1 text-right text-[10px]">
+                    <div className="flex justify-between font-black text-xs pt-1 border-t border-slate-800">
+                      <span>TOTAL AMOUNT:</span>
+                      <span>₹197.00</span>
                     </div>
                   </div>
 
-                  {/* RECEIPT FOOTER */}
-                  <div className="text-center pt-3 border-t border-dashed border-slate-400 space-y-2">
+                  <div className="text-center pt-2 border-t border-dashed border-slate-400 space-y-1.5">
                     {settings.upiId && (
-                      <p className="text-[10px] bg-slate-100 p-1 rounded font-bold">
-                        Pay via UPI: {settings.upiId}
-                      </p>
+                      <p className="text-[10px] bg-slate-100 p-1 rounded font-bold">Pay via UPI: {settings.upiId}</p>
                     )}
-
                     {settings.footerMessage && (
-                      <p className="font-bold text-[10px] text-slate-900">
-                        {settings.footerMessage}
-                      </p>
+                      <p className="font-bold text-[10px] text-slate-900">{settings.footerMessage}</p>
                     )}
-
                     {settings.termsAndConditions && (
-                      <div className="text-[9px] text-slate-500 whitespace-pre-line text-left border-t border-dotted border-slate-300 pt-1.5">
-                        <span className="font-bold block uppercase text-slate-700">Terms & Conditions:</span>
+                      <p className="text-[8.5px] text-slate-500 whitespace-pre-line text-left border-t border-dotted border-slate-300 pt-1">
                         {settings.termsAndConditions}
-                      </div>
-                    )}
-
-                    {settings.showSignatory && (
-                      <div className="pt-4 text-right">
-                        <p className="border-t border-slate-400 inline-block px-4 text-[9px] font-bold text-slate-700">
-                          {settings.authorizedSignatoryText || 'Authorized Signatory'}
-                        </p>
-                      </div>
+                      </p>
                     )}
                   </div>
                 </div>
               </div>
             )}
-
-            {/* Bottom Save Button */}
-            <button
-              type="submit"
-              disabled={saving}
-              className="w-full py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-2xl shadow-md shadow-emerald-600/20 flex items-center justify-center gap-2 transition-all disabled:opacity-50"
-            >
-              <Save className="w-4 h-4" />
-              <span>{saving ? 'Saving Settings...' : 'Save Header & Footer Configuration'}</span>
-            </button>
-          </form>
+          </div>
         )}
       </div>
     </AppLayout>
