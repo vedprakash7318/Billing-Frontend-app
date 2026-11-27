@@ -240,7 +240,7 @@ export default function AppLayout({
                 <span className="text-[10px] tracking-tight font-semibold">Products</span>
               </NavLink>
 
-              {/* 5. Store Profile */}
+              {/* 5. Profile */}
               <NavLink
                 to="/profile"
                 className={({ isActive }) =>
@@ -250,9 +250,9 @@ export default function AppLayout({
                 }
               >
                 <div className="w-8 h-7 flex items-center justify-center">
-                  <Store className="w-5 h-5" />
+                  <User className="w-5 h-5" />
                 </div>
-                <span className="text-[10px] tracking-tight font-semibold">Store</span>
+                <span className="text-[10px] tracking-tight font-semibold">Profile</span>
               </NavLink>
 
             </div>
