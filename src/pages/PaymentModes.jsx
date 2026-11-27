@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
 import AppLayout from '../components/AppLayout';
 import {
   CreditCard,
@@ -10,8 +9,10 @@ import {
   Trash2,
   CheckCircle2,
   AlertCircle,
-  Sparkles,
-  Wallet,
+  FileText,
+  Landmark,
+  BookOpen,
+  Smartphone,
 } from 'lucide-react';
 import api from '../services/api';
 import { confirmDialog } from '../utils/alerts';
@@ -21,25 +22,35 @@ const ICON_MAP = {
   QrCode,
   CreditCard,
   Tag,
-  Wallet: CreditCard,
+  BookOpen,
+  Smartphone,
+  Landmark,
+  FileText,
 };
+
+const ALL_SUGGESTIONS = [
+  { name: 'Cash', code: 'CASH', icon: 'Banknote', color: 'text-emerald-600', description: 'Cash payment at counter' },
+  { name: 'UPI', code: 'UPI', icon: 'QrCode', color: 'text-purple-600', description: 'Google Pay, PhonePe, Paytm QR' },
+  { name: 'Card', code: 'CARD', icon: 'CreditCard', color: 'text-blue-600', description: 'Credit / Debit card payment' },
+  { name: 'Credit (Khata / Udhar)', code: 'CREDIT', icon: 'BookOpen', color: 'text-amber-600', description: 'Customer store credit book' },
+  { name: 'Paytm / PhonePe Direct', code: 'PAYTM', icon: 'Smartphone', color: 'text-cyan-600', description: 'Direct mobile wallet' },
+  { name: 'Bank Transfer / NEFT', code: 'BANK_TRANSFER', icon: 'Landmark', color: 'text-indigo-600', description: 'Direct bank account transfer' },
+  { name: 'Cheque', code: 'CHEQUE', icon: 'FileText', color: 'text-slate-600', description: 'Bank cheque payment' },
+  { name: 'Food / Shopping Voucher', code: 'VOUCHER', icon: 'Tag', color: 'text-rose-600', description: 'Sodexo or store vouchers' },
+];
 
 export default function PaymentModes() {
   const [loading, setLoading] = useState(true);
   const [paymentModes, setPaymentModes] = useState([]);
-  const [suggestions, setSuggestions] = useState([]);
-  const [newModeName, setNewModeName] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
 
   const loadPaymentData = async () => {
     setLoading(true);
     try {
-      const modesRes = await api.get('/admin/payment-modes');
-
-      if (modesRes.data?.success) {
-        setPaymentModes(modesRes.data.data || []);
-        setSuggestions(modesRes.data.suggestions || []);
+      const res = await api.get('/admin/payment-modes');
+      if (res.data?.success) {
+        setPaymentModes(res.data.data || []);
       }
     } catch (err) {
       console.error('Failed to load payment modes:', err);
@@ -75,29 +86,10 @@ export default function PaymentModes() {
       });
       if (res.data?.success) {
         setPaymentModes((prev) => [...prev, res.data.data]);
-        setSuggestions((prev) => prev.filter((s) => s.code !== sugg.code));
         showSuccess(`Payment mode "${sugg.name}" added successfully!`);
       }
     } catch (err) {
       showError(err.response?.data?.error || 'Failed to add payment mode');
-    }
-  };
-
-  const handleAddCustomMode = async (e) => {
-    e.preventDefault();
-    if (!newModeName.trim()) return;
-
-    try {
-      const res = await api.post('/admin/payment-modes', {
-        name: newModeName.trim(),
-      });
-      if (res.data?.success) {
-        setPaymentModes((prev) => [...prev, res.data.data]);
-        setNewModeName('');
-        showSuccess(`Custom payment mode "${newModeName.trim()}" created!`);
-      }
-    } catch (err) {
-      showError(err.response?.data?.error || 'Failed to add custom payment mode');
     }
   };
 
@@ -117,7 +109,7 @@ export default function PaymentModes() {
   const handleDeleteMode = async (id, name) => {
     const confirmed = await confirmDialog({
       title: `Delete "${name}"?`,
-      text: 'This payment mode will be permanently removed from POS checkout.',
+      text: 'This payment mode will be removed from POS checkout.',
       isDangerous: true,
     });
     if (!confirmed) return;
@@ -126,15 +118,24 @@ export default function PaymentModes() {
       const res = await api.delete(`/admin/payment-modes/${id}`);
       if (res.data?.success) {
         setPaymentModes((prev) => prev.filter((m) => m.id !== id && m._id !== id));
-        if (res.data.suggestion) {
-          setSuggestions((prev) => [...prev, res.data.suggestion]);
-        }
-        showSuccess(`Payment mode "${name}" deleted`);
+        showSuccess(`Payment mode "${name}" removed`);
       }
     } catch (err) {
       showError(err.response?.data?.error || 'Failed to delete payment mode');
     }
   };
+
+  // Dynamically filter suggestions: Any mode already created in the store is hidden from suggestions!
+  const configuredCodes = new Set(paymentModes.map((m) => (m.code || '').toUpperCase()));
+  const configuredNames = new Set(paymentModes.map((m) => (m.name || '').toUpperCase().trim()));
+
+  const availableSuggestions = ALL_SUGGESTIONS.filter((s) => {
+    const codeMatch = configuredCodes.has(s.code.toUpperCase());
+    const nameMatch =
+      configuredNames.has(s.name.toUpperCase().trim()) ||
+      (s.code === 'UPI' && Array.from(configuredNames).some((n) => n.includes('UPI')));
+    return !codeMatch && !nameMatch;
+  });
 
   return (
     <AppLayout
@@ -158,8 +159,8 @@ export default function PaymentModes() {
           </div>
         )}
 
-        {/* 1. 1-Click Popular Suggestions */}
-        {suggestions.length > 0 && (
+        {/* 1. Quick Add Suggestions (1-Click) */}
+        {availableSuggestions.length > 0 && (
           <div className="bg-white rounded-3xl p-5 border border-slate-200/90 shadow-sm space-y-3">
             <div>
               <h4 className="text-xs font-black uppercase tracking-wider text-slate-900">
@@ -171,14 +172,14 @@ export default function PaymentModes() {
             </div>
 
             <div className="flex flex-wrap gap-2">
-              {suggestions.map((sugg) => (
+              {availableSuggestions.map((sugg) => (
                 <button
                   key={sugg.code}
                   type="button"
                   onClick={() => handleAddSuggestion(sugg)}
-                  className="px-3 py-1.5 bg-slate-50 hover:bg-emerald-50 hover:border-emerald-300 border border-slate-200 text-slate-700 hover:text-emerald-800 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all active:scale-95"
+                  className="px-3.5 py-2 bg-slate-50 hover:bg-emerald-50 hover:border-emerald-300 border border-slate-200 text-slate-700 hover:text-emerald-800 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all active:scale-95 shadow-2xs"
                 >
-                  <Plus className="w-3.5 h-3.5 text-emerald-600" />
+                  <Plus className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
                   <span>{sugg.name}</span>
                 </button>
               ))}
@@ -186,31 +187,7 @@ export default function PaymentModes() {
           </div>
         )}
 
-        {/* 3. Add Custom Mode Form */}
-        <div className="bg-white rounded-3xl p-5 border border-slate-200/90 shadow-sm space-y-3">
-          <h4 className="text-xs font-black uppercase tracking-wider text-slate-900">
-            Create Custom Payment Mode
-          </h4>
-          <form onSubmit={handleAddCustomMode} className="flex gap-2">
-            <input
-              type="text"
-              placeholder="e.g. Bajaj Finserv / Store Khata / Sodexo..."
-              value={newModeName}
-              onChange={(e) => setNewModeName(e.target.value)}
-              className="flex-1 px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 font-bold focus:outline-none focus:border-emerald-500 focus:bg-white"
-            />
-            <button
-              type="submit"
-              disabled={!newModeName.trim()}
-              className="px-4 py-2.5 bg-slate-900 hover:bg-slate-800 active:scale-95 disabled:opacity-40 text-white rounded-xl text-xs font-bold shrink-0 transition-all shadow-sm flex items-center gap-1"
-            >
-              <Plus className="w-3.5 h-3.5" />
-              <span>Add Mode</span>
-            </button>
-          </form>
-        </div>
-
-        {/* 4. Active Payment Modes List */}
+        {/* 2. Active Store Payment Modes List */}
         <div className="bg-white rounded-3xl p-5 border border-slate-200/90 shadow-sm space-y-3">
           <div className="flex items-center justify-between pb-2 border-b border-slate-100">
             <h4 className="text-xs font-black uppercase tracking-wider text-slate-900">
@@ -223,7 +200,7 @@ export default function PaymentModes() {
             <div className="py-8 text-center text-xs text-slate-400">Loading payment modes...</div>
           ) : paymentModes.length === 0 ? (
             <div className="py-8 text-center text-xs text-slate-400">
-              No payment modes configured. Tap suggestions above to add standard modes.
+              No payment modes configured. Tap suggestions above to add modes.
             </div>
           ) : (
             <div className="space-y-2">
