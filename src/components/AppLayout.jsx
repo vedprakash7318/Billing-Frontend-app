@@ -13,6 +13,7 @@ import {
   Sparkles,
   Tag,
   AlertTriangle,
+  User,
 } from 'lucide-react';
 
 export default function AppLayout({
