@@ -8,6 +8,7 @@ import {
   X,
   Plus,
   Download,
+  User,
 } from 'lucide-react';
 import api from '../services/api';
 import { downloadInvoicePdf } from '../utils/pdfGenerator';
