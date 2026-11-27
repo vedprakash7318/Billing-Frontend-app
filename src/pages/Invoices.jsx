@@ -12,8 +12,10 @@ import {
   X,
   CreditCard,
   Plus,
+  Download,
 } from 'lucide-react';
 import api from '../services/api';
+import { downloadInvoicePdf } from '../utils/pdfGenerator';
 
 export default function Invoices() {
   const [invoices, setInvoices] = useState([]);
@@ -122,25 +124,45 @@ export default function Invoices() {
                     <p className="text-xs text-slate-600 truncate mt-0.5">
                       {inv.customerName} {inv.customerPhone ? `• ${inv.customerPhone}` : ''}
                     </p>
-                    <p className="text-[10px] text-slate-400 mt-0.5">
-                      {new Date(inv.createdAt).toLocaleDateString('en-IN', {
-                        day: 'numeric',
-                        month: 'short',
-                        hour: '2-digit',
-                        minute: '2-digit',
-                      })} • {inv.items?.length || 0} items
-                    </p>
+                    <div className="flex flex-wrap items-center gap-2 mt-0.5 text-[10px] text-slate-400">
+                      <span>
+                        {new Date(inv.createdAt).toLocaleDateString('en-IN', {
+                          day: 'numeric',
+                          month: 'short',
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        })} • {inv.items?.length || 0} items
+                      </span>
+                      <span className="text-slate-300">•</span>
+                      <span className="font-semibold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded">
+                        Billed by: {inv.billedBy?.name || 'Store Admin'} ({inv.billedBy?.designation || inv.billedBy?.role || 'Staff'})
+                      </span>
+                    </div>
                   </div>
                 </div>
 
-                <div className="text-right shrink-0">
+                <div className="text-right shrink-0 space-y-1.5">
                   <span className="font-black text-sm text-slate-900 block">
                     ₹{inv.grandTotal?.toFixed(2)}
                   </span>
-                  <span className="inline-flex items-center gap-1 text-[10px] text-emerald-700 font-bold bg-emerald-50 px-2 py-0.5 rounded-md mt-1">
-                    <Printer className="w-3 h-3" />
-                    <span>View / Print</span>
-                  </span>
+                  <div className="flex items-center gap-1.5 justify-end">
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        downloadInvoicePdf(inv);
+                      }}
+                      className="inline-flex items-center gap-1 text-[10px] text-indigo-700 font-bold bg-indigo-50 hover:bg-indigo-100 px-2 py-1 rounded-md transition-colors"
+                      title="Download PDF Invoice"
+                    >
+                      <Download className="w-3 h-3" />
+                      <span>PDF</span>
+                    </button>
+                    <span className="inline-flex items-center gap-1 text-[10px] text-emerald-700 font-bold bg-emerald-50 hover:bg-emerald-100 px-2 py-1 rounded-md transition-colors">
+                      <Printer className="w-3 h-3" />
+                      <span>Print</span>
+                    </span>
+                  </div>
                 </div>
               </div>
             ))}
@@ -197,6 +219,9 @@ export default function Invoices() {
                     <p className="font-bold">Bill: {selectedInvoice.invoiceNumber}</p>
                     <p>Customer: {selectedInvoice.customerName}</p>
                     {selectedInvoice.customerPhone && <p>Ph: {selectedInvoice.customerPhone}</p>}
+                    <p className="text-emerald-700 font-bold mt-0.5">
+                      Billed By: {selectedInvoice.billedBy?.name || 'Store Admin'} ({selectedInvoice.billedBy?.designation || selectedInvoice.billedBy?.role || 'Staff'})
+                    </p>
                   </div>
                   <div className="text-right">
                     <p>Date: {new Date(selectedInvoice.createdAt).toLocaleDateString('en-IN')}</p>
@@ -268,9 +293,17 @@ export default function Invoices() {
                 <button
                   type="button"
                   onClick={() => setSelectedInvoice(null)}
-                  className="flex-1 py-2.5 border border-slate-200 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100"
+                  className="px-3 py-2.5 border border-slate-200 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100"
                 >
                   Close
+                </button>
+                <button
+                  type="button"
+                  onClick={() => downloadInvoicePdf(selectedInvoice)}
+                  className="flex-1 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 shadow-md shadow-indigo-600/20"
+                >
+                  <Download className="w-4 h-4" />
+                  <span>Download PDF</span>
                 </button>
                 <button
                   type="button"
@@ -278,7 +311,7 @@ export default function Invoices() {
                   className="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 shadow-md shadow-emerald-600/20"
                 >
                   <Printer className="w-4 h-4" />
-                  <span>Print Receipt</span>
+                  <span>Print Bill</span>
                 </button>
               </div>
             </div>
