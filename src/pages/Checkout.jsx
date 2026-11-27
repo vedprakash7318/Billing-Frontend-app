@@ -532,7 +532,7 @@ export default function Checkout() {
                 Payment Mode
               </label>
               <Link
-                to="/bill-settings"
+                to="/payment-modes"
                 className="text-[10px] font-bold text-emerald-700 hover:text-emerald-800 flex items-center gap-1"
               >
                 <span>⚙️ Manage Modes</span>

@@ -13,6 +13,7 @@ import BillSettings from './pages/BillSettings';
 import Invoices from './pages/Invoices';
 import Employees from './pages/Employees';
 import EmployeeForm from './pages/EmployeeForm';
+import PaymentModes from './pages/PaymentModes';
 import PublicReceipt from './pages/PublicReceipt';
 import SubscriptionPlans from './pages/SubscriptionPlans';
 import HelpSupport from './pages/HelpSupport';
@@ -69,6 +70,14 @@ export default function App() {
         element={
           <ProtectedRoute>
             <BillSettings />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/payment-modes"
+        element={
+          <ProtectedRoute>
+            <PaymentModes />
           </ProtectedRoute>
         }
       />
