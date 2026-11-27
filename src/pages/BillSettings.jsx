@@ -1,16 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import AppLayout from '../components/AppLayout';
 import {
-  Receipt,
   Save,
-  CheckCircle2,
   Printer,
   Sparkles,
-  Sliders,
   Store,
-  Phone,
   FileText,
-  AlertCircle,
   CreditCard,
   Banknote,
   QrCode,
@@ -20,9 +15,6 @@ import {
   Tag,
   Plus,
   Trash2,
-  Check,
-  ToggleLeft,
-  ToggleRight,
   Wallet,
 } from 'lucide-react';
 import api from '../services/api';
@@ -225,33 +217,30 @@ export default function BillSettings() {
           <button
             type="button"
             onClick={() => setActiveTab('HEADER')}
-            className={`py-2 rounded-xl transition-all ${
-              activeTab === 'HEADER'
-                ? 'bg-white text-slate-900 shadow-sm font-black'
-                : 'text-slate-600 hover:text-slate-900'
-            }`}
+            className={`py-2 rounded-xl transition-all ${activeTab === 'HEADER'
+              ? 'bg-white text-slate-900 shadow-sm font-black'
+              : 'text-slate-600 hover:text-slate-900'
+              }`}
           >
             Header
           </button>
           <button
             type="button"
             onClick={() => setActiveTab('FOOTER')}
-            className={`py-2 rounded-xl transition-all ${
-              activeTab === 'FOOTER'
-                ? 'bg-white text-slate-900 shadow-sm font-black'
-                : 'text-slate-600 hover:text-slate-900'
-            }`}
+            className={`py-2 rounded-xl transition-all ${activeTab === 'FOOTER'
+              ? 'bg-white text-slate-900 shadow-sm font-black'
+              : 'text-slate-600 hover:text-slate-900'
+              }`}
           >
             Footer
           </button>
           <button
             type="button"
             onClick={() => setActiveTab('PAYMENT_MODES')}
-            className={`py-2 rounded-xl transition-all flex items-center justify-center gap-1.5 ${
-              activeTab === 'PAYMENT_MODES'
-                ? 'bg-white text-slate-900 shadow-sm font-black'
-                : 'text-slate-600 hover:text-slate-900'
-            }`}
+            className={`py-2 rounded-xl transition-all flex items-center justify-center gap-1.5 ${activeTab === 'PAYMENT_MODES'
+              ? 'bg-white text-slate-900 shadow-sm font-black'
+              : 'text-slate-600 hover:text-slate-900'
+              }`}
           >
             <span>Payment Modes</span>
             <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-emerald-100 text-emerald-800">
@@ -261,11 +250,10 @@ export default function BillSettings() {
           <button
             type="button"
             onClick={() => setActiveTab('PREVIEW')}
-            className={`py-2 rounded-xl transition-all ${
-              activeTab === 'PREVIEW'
-                ? 'bg-white text-slate-900 shadow-sm font-black'
-                : 'text-slate-600 hover:text-slate-900'
-            }`}
+            className={`py-2 rounded-xl transition-all ${activeTab === 'PREVIEW'
+              ? 'bg-white text-slate-900 shadow-sm font-black'
+              : 'text-slate-600 hover:text-slate-900'
+              }`}
           >
             Preview
           </button>
@@ -558,17 +546,15 @@ export default function BillSettings() {
                         return (
                           <div
                             key={mode.id}
-                            className={`p-3 rounded-2xl border flex items-center justify-between gap-3 transition-all ${
-                              mode.isActive
-                                ? 'bg-white border-slate-200/80 shadow-xs'
-                                : 'bg-slate-50/70 border-slate-200/40 opacity-60'
-                            }`}
+                            className={`p-3 rounded-2xl border flex items-center justify-between gap-3 transition-all ${mode.isActive
+                              ? 'bg-white border-slate-200/80 shadow-xs'
+                              : 'bg-slate-50/70 border-slate-200/40 opacity-60'
+                              }`}
                           >
                             <div className="flex items-center gap-3 min-w-0">
                               <div
-                                className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
-                                  mode.isActive ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-200 text-slate-500'
-                                }`}
+                                className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${mode.isActive ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-200 text-slate-500'
+                                  }`}
                               >
                                 <Icon className="w-4 h-4" />
                               </div>
@@ -591,11 +577,10 @@ export default function BillSettings() {
                               <button
                                 type="button"
                                 onClick={() => handleToggleMode(mode.id)}
-                                className={`px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all ${
-                                  mode.isActive
-                                    ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                                    : 'bg-slate-200 text-slate-600'
-                                }`}
+                                className={`px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all ${mode.isActive
+                                  ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                                  : 'bg-slate-200 text-slate-600'
+                                  }`}
                               >
                                 {mode.isActive ? 'Active' : 'Disabled'}
                               </button>
