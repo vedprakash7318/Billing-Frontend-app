@@ -29,25 +29,17 @@ export default function PaymentModes() {
   const [paymentModes, setPaymentModes] = useState([]);
   const [suggestions, setSuggestions] = useState([]);
   const [newModeName, setNewModeName] = useState('');
-  const [upiId, setUpiId] = useState('');
-  const [savingUpi, setSavingUpi] = useState(false);
   const [successMsg, setSuccessMsg] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
 
   const loadPaymentData = async () => {
     setLoading(true);
     try {
-      const [modesRes, billRes] = await Promise.all([
-        api.get('/admin/payment-modes'),
-        api.get('/admin/bill-settings').catch(() => ({ data: {} })),
-      ]);
+      const modesRes = await api.get('/admin/payment-modes');
 
       if (modesRes.data?.success) {
         setPaymentModes(modesRes.data.data || []);
         setSuggestions(modesRes.data.suggestions || []);
-      }
-      if (billRes.data?.success && billRes.data.data) {
-        setUpiId(billRes.data.data.upiId || '');
       }
     } catch (err) {
       console.error('Failed to load payment modes:', err);
@@ -144,24 +136,10 @@ export default function PaymentModes() {
     }
   };
 
-  const handleSaveUpiId = async () => {
-    setSavingUpi(true);
-    try {
-      const res = await api.put('/admin/bill-settings', { upiId: upiId.trim() });
-      if (res.data?.success) {
-        showSuccess('Store UPI ID saved! QR code will appear on customer invoices.');
-      }
-    } catch (err) {
-      showError(err.response?.data?.error || 'Failed to save UPI ID');
-    } finally {
-      setSavingUpi(false);
-    }
-  };
-
   return (
     <AppLayout
       title="Store Payment Modes"
-      subtitle="POS Methods & Invoice QR"
+      subtitle="POS Checkout Payment Methods"
       backTo="/profile"
     >
       <div className="max-w-2xl mx-auto space-y-4">
@@ -180,42 +158,7 @@ export default function PaymentModes() {
           </div>
         )}
 
-        {/* 1. Store UPI ID / QR Configuration */}
-        <div className="bg-white rounded-3xl p-5 border border-slate-200/90 shadow-sm space-y-3">
-          <div className="flex items-center gap-2 pb-2 border-b border-slate-100">
-            <div className="w-7 h-7 rounded-lg bg-purple-50 text-purple-600 flex items-center justify-center">
-              <QrCode className="w-4 h-4" />
-            </div>
-            <div>
-              <h3 className="text-xs font-black uppercase tracking-wider text-slate-900">
-                Store UPI ID for Dynamic QR
-              </h3>
-              <p className="text-[10px] text-slate-400">
-                Printed on thermal receipt so customers can scan with GPay / PhonePe / Paytm
-              </p>
-            </div>
-          </div>
-
-          <div className="flex gap-2">
-            <input
-              type="text"
-              placeholder="e.g. apexmart@upi / 9876543210@paytm"
-              value={upiId}
-              onChange={(e) => setUpiId(e.target.value)}
-              className="flex-1 px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 font-mono font-bold focus:outline-none focus:border-emerald-500 focus:bg-white"
-            />
-            <button
-              type="button"
-              onClick={handleSaveUpiId}
-              disabled={savingUpi}
-              className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white rounded-xl text-xs font-bold shrink-0 transition-all shadow-sm"
-            >
-              {savingUpi ? 'Saving...' : 'Save UPI'}
-            </button>
-          </div>
-        </div>
-
-        {/* 2. 1-Click Popular Suggestions */}
+        {/* 1. 1-Click Popular Suggestions */}
         {suggestions.length > 0 && (
           <div className="bg-white rounded-3xl p-5 border border-slate-200/90 shadow-sm space-y-3">
             <div>

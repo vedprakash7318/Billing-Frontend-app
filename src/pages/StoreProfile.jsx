@@ -480,7 +480,7 @@ export default function StoreProfile() {
                     <ChevronRight className="w-4 h-4 text-slate-400" />
                   </Link>
 
-                  {/* 2. Payment Modes & QR (NEW DEDICATED SECTION) */}
+                  {/* 2. Store Payment Modes */}
                   <Link
                     to="/payment-modes"
                     className="flex items-center justify-between p-3 rounded-2xl bg-slate-50 hover:bg-emerald-50/70 border border-slate-100 transition-colors"
@@ -490,8 +490,8 @@ export default function StoreProfile() {
                         <CreditCard className="w-4 h-4" />
                       </div>
                       <div>
-                        <p className="text-xs font-bold text-slate-900">Payment Modes & QR</p>
-                        <p className="text-[10px] text-slate-500">Manage UPI, Card, Cash & custom payment modes</p>
+                        <p className="text-xs font-bold text-slate-900">Store Payment Modes</p>
+                        <p className="text-[10px] text-slate-500">Manage Cash, UPI, Card & custom payment modes</p>
                       </div>
                     </div>
                     <ChevronRight className="w-4 h-4 text-slate-400" />
