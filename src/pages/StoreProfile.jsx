@@ -422,8 +422,8 @@ export default function StoreProfile() {
               /* ==================== VIEW MODE ==================== */
               <div className="space-y-4">
                 {/* Admin Profile Overview Card */}
-                <div className="bg-white rounded-3xl p-5 border border-slate-200/90 shadow-sm relative space-y-4">
-                  <div className="flex items-start justify-between gap-3">
+                <div className="bg-white rounded-3xl p-5 border border-slate-200/90 shadow-sm relative">
+                  <div className="flex items-center justify-between gap-3">
                     <div className="flex items-center gap-3.5 min-w-0">
                       <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-emerald-500 to-teal-600 text-white flex items-center justify-center font-black text-xl shadow-md shadow-emerald-500/25 shrink-0">
                         {user?.name ? user.name.slice(0, 2).toUpperCase() : 'AD'}
@@ -449,61 +449,11 @@ export default function StoreProfile() {
                     <button
                       type="button"
                       onClick={() => setIsEditingProfile(true)}
-                      className="px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200/70 rounded-xl text-xs font-bold flex items-center gap-1 transition-all shrink-0 active:scale-95"
+                      className="px-3.5 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200/70 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all shrink-0 active:scale-95 shadow-xs"
                     >
                       <Edit3 className="w-3.5 h-3.5" />
                       <span>Edit</span>
                     </button>
-                  </div>
-
-                  {/* Onboarding Details Grid */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-3 border-t border-slate-100 text-xs">
-                    <div className="p-3 bg-slate-50 rounded-2xl">
-                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
-                        Login Email
-                      </span>
-                      <span className="font-bold text-slate-800 truncate block mt-0.5">
-                        {user?.email || 'N/A'}
-                      </span>
-                    </div>
-
-                    <div className="p-3 bg-slate-50 rounded-2xl">
-                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
-                        Contact Phone
-                      </span>
-                      <span className="font-bold text-slate-800 font-mono block mt-0.5">
-                        {user?.phone || tenant?.phone || 'Not provided'}
-                      </span>
-                    </div>
-
-                    <div className="p-3 bg-slate-50 rounded-2xl">
-                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
-                        GSTIN
-                      </span>
-                      <span className="font-bold text-slate-800 font-mono block mt-0.5">
-                        {tenant?.gstin || 'Not registered'}
-                      </span>
-                    </div>
-
-                    <div className="p-3 bg-slate-50 rounded-2xl">
-                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
-                        Location
-                      </span>
-                      <span className="font-bold text-slate-800 block mt-0.5 truncate">
-                        {tenant?.city || 'City'}, {tenant?.state || 'State'} {tenant?.pincode ? `(${tenant.pincode})` : ''}
-                      </span>
-                    </div>
-
-                    {tenant?.address && (
-                      <div className="p-3 bg-slate-50 rounded-2xl sm:col-span-2">
-                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
-                          Store Address
-                        </span>
-                        <span className="font-bold text-slate-800 block mt-0.5">
-                          {tenant.address}
-                        </span>
-                      </div>
-                    )}
                   </div>
                 </div>
 
