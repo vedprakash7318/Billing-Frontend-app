@@ -161,15 +161,10 @@ export default function Invoices() {
                 {/* 3. Footer: Employee Name & Action Buttons */}
                 <div className="flex items-center justify-between gap-2 pt-1 border-t border-dashed border-slate-100">
                   <div className="flex items-center gap-1.5 text-xs text-slate-700 min-w-0 truncate">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
+                    <User className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
                     <span className="font-bold text-slate-800 truncate">
-                      {inv.billedBy?.name || 'Store Admin'}
+                      {inv.billedBy?.name || 'Ved Prakash'}
                     </span>
-                    {(inv.billedBy?.designation || inv.billedBy?.role) && (
-                      <span className="text-[9px] px-1.5 py-0.2 bg-slate-100 text-slate-500 rounded font-medium shrink-0">
-                        {inv.billedBy?.designation || inv.billedBy?.role}
-                      </span>
-                    )}
                   </div>
 
                   <div className="flex items-center gap-1.5 shrink-0">

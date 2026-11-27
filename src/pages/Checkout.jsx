@@ -71,6 +71,15 @@ export default function Checkout() {
   const [quotas, setQuotas] = useState(null);
   const [paymentModes, setPaymentModes] = useState([]);
 
+  const currentUser = JSON.parse(localStorage.getItem('client_admin_user') || '{}');
+  const [employees, setEmployees] = useState([]);
+  const [cashier, setCashier] = useState({
+    user: currentUser?.id || currentUser?._id || null,
+    name: currentUser?.name || 'Cashier',
+    role: currentUser?.role || 'STAFF',
+    designation: currentUser?.designation || 'Cashier',
+  });
+
   useEffect(() => {
     // 1. Load store active payment modes
     api
@@ -99,6 +108,32 @@ export default function Checkout() {
           }
           if (res.data.data.quotas.isWhatsAppGloballyEnabled === false && deliveryMethod === 'WHATSAPP') {
             setDeliveryMethod('PRINT');
+          }
+        }
+      })
+      .catch(() => {});
+
+    // 3. Load employees for cashier attribution
+    api
+      .get('/admin/employees')
+      .then((res) => {
+        if (res.data?.data && res.data.data.length > 0) {
+          setEmployees(res.data.data);
+          const activeStaff = res.data.data.filter((e) => e.status === 'ACTIVE');
+          if (currentUser?.role === 'STAFF') {
+            setCashier({
+              user: currentUser.id || currentUser._id,
+              name: currentUser.name,
+              role: 'STAFF',
+              designation: currentUser.designation || 'Cashier',
+            });
+          } else if (activeStaff.length > 0) {
+            setCashier({
+              user: activeStaff[0]._id,
+              name: activeStaff[0].name,
+              role: 'STAFF',
+              designation: activeStaff[0].designation || 'Cashier',
+            });
           }
         }
       })
@@ -165,6 +200,7 @@ export default function Checkout() {
         deliveryMethod,
         clientOrigin: window.location.origin,
         notes: notes.trim(),
+        billedBy: cashier,
       };
 
       const res = await api.post('/admin/invoices', payload);
@@ -437,6 +473,52 @@ export default function Checkout() {
                 }`}
               />
             </div>
+
+            {/* Cashier / Billed By Selector */}
+            {employees.length > 0 && (
+              <div className="pt-2 border-t border-slate-100">
+                <label className="text-[11px] font-bold text-slate-500 mb-1 flex items-center justify-between">
+                  <span className="flex items-center gap-1">
+                    <User className="w-3 h-3 text-slate-400" />
+                    <span>Cashier (Billed By)</span>
+                  </span>
+                  <span className="text-[10px] text-emerald-600 font-bold">
+                    {cashier?.name}
+                  </span>
+                </label>
+                <select
+                  value={cashier?.user || ''}
+                  onChange={(e) => {
+                    const emp = employees.find((x) => x._id === e.target.value);
+                    if (emp) {
+                      setCashier({
+                        user: emp._id,
+                        name: emp.name,
+                        role: 'STAFF',
+                        designation: emp.designation || 'Cashier',
+                      });
+                    } else {
+                      setCashier({
+                        user: currentUser?.id || currentUser?._id,
+                        name: currentUser?.name || 'Cashier',
+                        role: currentUser?.role || 'ADMIN',
+                        designation: currentUser?.designation || 'Store Admin',
+                      });
+                    }
+                  }}
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:border-emerald-500 font-bold"
+                >
+                  <option value={currentUser?.id || currentUser?._id}>
+                    {currentUser?.name || 'Store Admin'} (Current Login)
+                  </option>
+                  {employees.map((emp) => (
+                    <option key={emp._id} value={emp._id}>
+                      {emp.name} ({emp.designation || 'Cashier'})
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
           </div>
         </div>
 
