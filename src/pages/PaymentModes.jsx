@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import api from '../services/api';
 import { confirmDialog } from '../utils/alerts';
+import { PaymentModesSkeleton } from '../components/Skeletons';
 
 const ICON_MAP = {
   Banknote,
@@ -159,8 +160,12 @@ export default function PaymentModes() {
           </div>
         )}
 
-        {/* 1. Quick Add Suggestions (1-Click) */}
-        {availableSuggestions.length > 0 && (
+        {loading ? (
+          <PaymentModesSkeleton />
+        ) : (
+          <>
+            {/* 1. Quick Add Suggestions (1-Click) */}
+            {availableSuggestions.length > 0 && (
           <div className="bg-white rounded-3xl p-5 border border-slate-200/90 shadow-sm space-y-3">
             <div>
               <h4 className="text-xs font-black uppercase tracking-wider text-slate-900">
@@ -196,9 +201,7 @@ export default function PaymentModes() {
             <span className="text-[10px] text-slate-400 font-medium">Used at POS Checkout</span>
           </div>
 
-          {loading ? (
-            <div className="py-8 text-center text-xs text-slate-400">Loading payment modes...</div>
-          ) : paymentModes.length === 0 ? (
+          {paymentModes.length === 0 ? (
             <div className="py-8 text-center text-xs text-slate-400">
               No payment modes configured. Tap suggestions above to add modes.
             </div>
@@ -266,6 +269,8 @@ export default function PaymentModes() {
             </div>
           )}
         </div>
+        </>
+        )}
       </div>
     </AppLayout>
   );

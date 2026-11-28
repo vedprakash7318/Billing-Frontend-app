@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import api from '../services/api';
 import { confirmDialog, toastSuccess, toastError } from '../utils/alerts';
+import { EmployeesSkeleton } from '../components/Skeletons';
 
 export default function Employees() {
   const [employees, setEmployees] = useState([]);
@@ -112,7 +113,7 @@ export default function Employees() {
 
         {/* Employees List */}
         {loading ? (
-          <div className="py-16 text-center text-xs text-slate-400">Loading employees...</div>
+          <EmployeesSkeleton />
         ) : employees.length === 0 ? (
           <div className="bg-white rounded-3xl p-10 text-center border border-slate-200/80 shadow-sm space-y-3">
             <Users className="w-12 h-12 text-slate-300 mx-auto" />

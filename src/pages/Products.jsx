@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import api from '../services/api';
 import { confirmDialog, toastSuccess, toastError } from '../utils/alerts';
+import { ProductsSkeleton } from '../components/Skeletons';
 
 export default function Products() {
   const [products, setProducts] = useState([]);
@@ -156,7 +157,7 @@ export default function Products() {
 
         {/* Products List */}
         {loading ? (
-          <div className="py-20 text-center text-xs text-slate-400">Loading products catalog...</div>
+          <ProductsSkeleton />
         ) : products.length === 0 ? (
           <div className="bg-white rounded-3xl p-10 text-center border border-slate-200/80 shadow-sm space-y-3">
             <Package className="w-12 h-12 text-slate-300 mx-auto" />

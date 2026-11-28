@@ -11,6 +11,7 @@ import {
   FileSpreadsheet,
 } from 'lucide-react';
 import api from '../services/api';
+import { DashboardSkeleton } from '../components/Skeletons';
 
 export default function Dashboard() {
   const [stats, setStats] = useState(null);
@@ -77,7 +78,10 @@ export default function Dashboard() {
       title={store?.name || 'Dashboard'}
       subtitle={store?.slug ? `@${store.slug} • Business Analytics` : 'Store Analytics'}
     >
-      <div className="space-y-3.5 pb-6">
+      {loading ? (
+        <DashboardSkeleton />
+      ) : (
+        <div className="space-y-3.5 pb-6">
 
         {/* 1. SUBSCRIPTION EXPIRY ALERT (ONLY IF <= 10 DAYS) */}
         {sub?.isExpiringSoon && (
@@ -494,6 +498,7 @@ export default function Dashboard() {
         </div>
 
       </div>
+      )}
     </AppLayout>
   );
 }

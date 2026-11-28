@@ -28,9 +28,15 @@ export default function PublicReceipt() {
   if (loading) {
     return (
       <div className="min-h-screen bg-slate-100 flex items-center justify-center p-4">
-        <div className="text-center space-y-3">
-          <div className="w-8 h-8 border-2 border-emerald-600 border-t-transparent rounded-full animate-spin mx-auto" />
-          <p className="text-xs font-semibold text-slate-500">Loading Digital Receipt...</p>
+        <div className="bg-white rounded-3xl p-6 max-w-sm w-full shadow-lg border border-slate-200 space-y-4">
+          <div className="h-6 w-32 bg-slate-200 rounded-lg mx-auto skeleton-shimmer" />
+          <div className="h-4 w-48 bg-slate-100 rounded mx-auto skeleton-shimmer" />
+          <div className="border-t border-dashed border-slate-200 my-4 pt-4 space-y-2">
+            <div className="h-4 bg-slate-100 rounded skeleton-shimmer" />
+            <div className="h-4 bg-slate-100 rounded skeleton-shimmer" />
+            <div className="h-4 bg-slate-100 rounded skeleton-shimmer" />
+          </div>
+          <div className="h-9 bg-slate-200 rounded-xl skeleton-shimmer" />
         </div>
       </div>
     );

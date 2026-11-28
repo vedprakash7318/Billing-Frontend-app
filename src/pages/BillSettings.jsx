@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import AppLayout from '../components/AppLayout';
+import { BillSettingsSkeleton } from '../components/Skeletons';
 import {
   Save,
   Printer,
@@ -260,7 +261,7 @@ export default function BillSettings() {
         </div>
 
         {loading ? (
-          <div className="py-20 text-center text-xs text-slate-400">Loading settings...</div>
+          <BillSettingsSkeleton />
         ) : (
           <div>
             {/* TAB 1: HEADER SETTINGS */}

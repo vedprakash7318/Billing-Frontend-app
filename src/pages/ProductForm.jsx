@@ -18,6 +18,7 @@ import {
 import BarcodeScanner from '../components/BarcodeScanner';
 import api from '../services/api';
 import { toastSuccess, toastError } from '../utils/alerts';
+import { FormSkeleton } from '../components/Skeletons';
 
 export default function ProductForm() {
   const { id } = useParams();
@@ -180,7 +181,7 @@ export default function ProductForm() {
     >
       <div className="max-w-2xl mx-auto space-y-4">
         {loading || loadingCats ? (
-          <div className="py-16 text-center text-xs text-slate-400 animate-pulse">Loading form...</div>
+          <FormSkeleton />
         ) : (
           <form onSubmit={handleSubmit} className="bg-white rounded-3xl p-4 sm:p-5 border border-slate-200/80 shadow-xs space-y-4">
             {error && (

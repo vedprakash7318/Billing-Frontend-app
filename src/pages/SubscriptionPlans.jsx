@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import AppLayout from '../components/AppLayout';
+import { SubscriptionSkeleton } from '../components/Skeletons';
 import {
   Calendar,
   CheckCircle2,
@@ -418,9 +419,7 @@ export default function SubscriptionPlans() {
     >
       <div className="w-full max-w-5xl mx-auto space-y-4 sm:space-y-6 pb-24 sm:pb-32">
         {loading ? (
-          <div className="py-20 text-center text-xs text-slate-400 animate-pulse">
-            Loading subscription details & plans...
-          </div>
+          <SubscriptionSkeleton />
         ) : (
           <>
             {/* 1. CURRENT SUBSCRIPTION BANNER */}

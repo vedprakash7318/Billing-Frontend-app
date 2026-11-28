@@ -540,8 +540,11 @@ export default function Checkout() {
             </div>
 
             {paymentModes.length === 0 ? (
-              <div className="p-3 bg-slate-50 rounded-2xl text-xs text-slate-400 text-center">
-                Loading store payment modes...
+              <div className="grid grid-cols-2 gap-2">
+                <div className="h-11 bg-slate-100 rounded-2xl skeleton-shimmer" />
+                <div className="h-11 bg-slate-100 rounded-2xl skeleton-shimmer" />
+                <div className="h-11 bg-slate-100 rounded-2xl skeleton-shimmer" />
+                <div className="h-11 bg-slate-100 rounded-2xl skeleton-shimmer" />
               </div>
             ) : (
               <div className="grid grid-cols-2 gap-2">

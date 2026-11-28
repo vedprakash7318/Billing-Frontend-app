@@ -4,6 +4,7 @@ import AppLayout from '../components/AppLayout';
 import { Layers, Save, AlertCircle } from 'lucide-react';
 import api from '../services/api';
 import { toastSuccess, toastError } from '../utils/alerts';
+import { FormSkeleton } from '../components/Skeletons';
 
 export default function CategoryForm() {
   const { id } = useParams();
@@ -91,7 +92,7 @@ export default function CategoryForm() {
     >
       <div className="max-w-2xl mx-auto space-y-4">
         {loading ? (
-          <div className="py-16 text-center text-xs text-slate-400">Loading details...</div>
+          <FormSkeleton />
         ) : (
           <form onSubmit={handleSubmit} className="bg-white rounded-3xl p-5 border border-slate-200/80 shadow-sm space-y-4">
             {error && (

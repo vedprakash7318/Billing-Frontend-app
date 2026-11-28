@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import api from '../services/api';
 import { confirmDialog } from '../utils/alerts';
+import { ProfileSkeleton } from '../components/Skeletons';
 
 export default function StoreProfile() {
   const navigate = useNavigate();
@@ -192,7 +193,7 @@ export default function StoreProfile() {
         )}
 
         {loading ? (
-          <div className="py-20 text-center text-xs text-slate-400">Loading store details...</div>
+          <ProfileSkeleton />
         ) : (
           <div className="space-y-4">
             {isEditingProfile ? (

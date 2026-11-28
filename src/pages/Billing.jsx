@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import BarcodeScanner from '../components/BarcodeScanner';
 import api from '../services/api';
+import { BillingInventorySkeleton } from '../components/Skeletons';
 import { toastSuccess, toastError, confirmDialog } from '../utils/alerts';
 
 export default function Billing() {
@@ -291,9 +292,7 @@ export default function Billing() {
 
           {/* Product Items List (Shows Search Results OR Category Items) */}
           {loadingProds ? (
-            <div className="py-6 text-center text-xs text-slate-400 animate-pulse">
-              Loading inventory catalog...
-            </div>
+            <BillingInventorySkeleton />
           ) : filteredProducts.length === 0 ? (
             <div className="py-6 text-center text-xs text-slate-400 space-y-1">
               <p>No products found {search ? `for "${search}"` : ''}</p>

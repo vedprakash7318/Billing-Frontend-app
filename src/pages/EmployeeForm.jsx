@@ -4,6 +4,7 @@ import AppLayout from '../components/AppLayout';
 import { Users, Save, AlertCircle, KeyRound } from 'lucide-react';
 import api from '../services/api';
 import { toastSuccess, toastError } from '../utils/alerts';
+import { FormSkeleton } from '../components/Skeletons';
 
 const DESIGNATIONS = [
   'Cashier',
@@ -120,7 +121,7 @@ export default function EmployeeForm() {
     >
       <div className="max-w-2xl mx-auto space-y-4">
         {loading ? (
-          <div className="py-16 text-center text-xs text-slate-400">Loading employee details...</div>
+          <FormSkeleton />
         ) : (
           <form onSubmit={handleSubmit} className="bg-white rounded-3xl p-5 border border-slate-200/80 shadow-sm space-y-4">
             {error && (

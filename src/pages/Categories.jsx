@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import api from '../services/api';
 import { confirmDialog, toastSuccess, toastError } from '../utils/alerts';
+import { CategoriesSkeleton } from '../components/Skeletons';
 
 export default function Categories() {
   const [categories, setCategories] = useState([]);
@@ -91,7 +92,7 @@ export default function Categories() {
 
         {/* Categories List */}
         {loading ? (
-          <div className="py-16 text-center text-xs text-slate-400">Loading categories...</div>
+          <CategoriesSkeleton />
         ) : categories.length === 0 ? (
           <div className="bg-white rounded-3xl p-10 text-center border border-slate-200/80 shadow-sm space-y-3">
             <FolderOpen className="w-12 h-12 text-slate-300 mx-auto" />
