@@ -209,19 +209,17 @@ export default function PaymentModes() {
                 return (
                   <div
                     key={mode.id || mode._id}
-                    className={`p-3 rounded-2xl border flex items-center justify-between gap-3 transition-all ${
-                      mode.isActive
-                        ? 'bg-white border-slate-200 shadow-2xs'
-                        : 'bg-slate-50 border-slate-200/50 opacity-60'
-                    }`}
+                    className={`p-3 rounded-2xl border flex items-center justify-between gap-3 transition-all ${mode.isActive
+                      ? 'bg-white border-slate-200 shadow-2xs'
+                      : 'bg-slate-50 border-slate-200/50 opacity-60'
+                      }`}
                   >
                     <div className="flex items-center gap-3 min-w-0">
                       <div
-                        className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
-                          mode.isActive
-                            ? 'bg-emerald-50 text-emerald-600'
-                            : 'bg-slate-200 text-slate-500'
-                        }`}
+                        className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${mode.isActive
+                          ? 'bg-emerald-50 text-emerald-600'
+                          : 'bg-slate-200 text-slate-500'
+                          }`}
                       >
                         <Icon className="w-4 h-4" />
                       </div>
@@ -246,11 +244,10 @@ export default function PaymentModes() {
                       <button
                         type="button"
                         onClick={() => handleToggleMode(mode.id || mode._id)}
-                        className={`px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all ${
-                          mode.isActive
-                            ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                            : 'bg-slate-200 text-slate-600'
-                        }`}
+                        className={`px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all ${mode.isActive
+                          ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                          : 'bg-slate-200 text-slate-600'
+                          }`}
                       >
                         {mode.isActive ? 'Active' : 'Disabled'}
                       </button>

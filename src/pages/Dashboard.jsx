@@ -76,15 +76,6 @@ export default function Dashboard() {
     <AppLayout
       title={store?.name || 'Dashboard'}
       subtitle={store?.slug ? `@${store.slug} • Business Analytics` : 'Store Analytics'}
-      actionButton={
-        <Link
-          to="/billing"
-          className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm active:scale-95 transition-all"
-        >
-          <Receipt className="w-3.5 h-3.5" />
-          <span>New Bill</span>
-        </Link>
-      }
     >
       <div className="space-y-3.5 pb-6">
 

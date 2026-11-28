@@ -53,15 +53,6 @@ export default function Invoices() {
       title="Past Bills & Invoices"
       subtitle={`${pagination.total} sales receipts`}
       backTo="/"
-      actionButton={
-        <Link
-          to="/billing"
-          className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold flex items-center gap-1 shadow-sm"
-        >
-          <Plus className="w-3.5 h-3.5" />
-          <span>New Bill</span>
-        </Link>
-      }
     >
       <div className="space-y-3.5">
         {/* Search */}

@@ -15,6 +15,7 @@ import {
   AlertTriangle,
   User,
 } from 'lucide-react';
+import api from '../services/api';
 
 export default function AppLayout({
   children,
@@ -32,6 +33,76 @@ export default function AppLayout({
   const roleName = user?.role === 'STAFF' ? (user?.designation || 'Cashier') : 'Store Admin';
   const currentSub = user?.tenant?.currentSubscription;
   const planName = currentSub?.plan?.name || 'Active Plan';
+
+  // Live subscription data
+  const [subData, setSubData] = useState(() => {
+    return user?.tenant?.currentSubscription || null;
+  });
+
+  useEffect(() => {
+    api
+      .get('/admin/subscription')
+      .then((res) => {
+        if (res.data?.data?.subscription) {
+          setSubData(res.data.data.subscription);
+        }
+      })
+      .catch(() => {});
+  }, [location.pathname]);
+
+  // Subscription status badge calculation
+  const getSubBadge = () => {
+    const sub = subData || user?.tenant?.currentSubscription;
+    const now = new Date();
+
+    if (!sub) {
+      return {
+        text: 'Active',
+        className: 'bg-emerald-50 text-emerald-700 border-emerald-200/90 hover:bg-emerald-100',
+        dot: 'bg-emerald-500',
+      };
+    }
+
+    const endDate = sub.endDate ? new Date(sub.endDate) : null;
+    let daysLeft = sub.daysRemaining;
+
+    if (daysLeft === undefined || daysLeft === null) {
+      if (endDate) {
+        daysLeft = Math.ceil((endDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+      }
+    }
+
+    const isExpired =
+      sub.isExpired ||
+      sub.status === 'EXPIRED' ||
+      user?.tenant?.status === 'EXPIRED' ||
+      (endDate && endDate < now) ||
+      (typeof daysLeft === 'number' && daysLeft <= 0);
+
+    if (isExpired) {
+      return {
+        text: 'Expire',
+        className: 'bg-rose-50 text-rose-700 border-rose-300 hover:bg-rose-100',
+        dot: 'bg-rose-500',
+      };
+    }
+
+    if (typeof daysLeft === 'number' && daysLeft <= 10) {
+      return {
+        text: `${daysLeft}d left`,
+        className: 'bg-amber-50 text-amber-800 border-amber-300 hover:bg-amber-100',
+        dot: 'bg-amber-500',
+      };
+    }
+
+    return {
+      text: 'Active',
+      className: 'bg-emerald-50 text-emerald-700 border-emerald-200/90 hover:bg-emerald-100',
+      dot: 'bg-emerald-500',
+    };
+  };
+
+  const subBadge = getSubBadge();
 
   // Check if store subscription is expired
   const now = new Date();
@@ -135,11 +206,12 @@ export default function AppLayout({
           <div className="flex items-center gap-2 shrink-0">
             {actionButton}
             <Link
-              to="/profile"
-              className="w-8 h-8 rounded-xl bg-slate-100 hover:bg-emerald-50 text-slate-700 hover:text-emerald-700 border border-slate-200/80 flex items-center justify-center font-bold text-xs shadow-2xs active:scale-95 transition-all"
-              title="Admin Profile"
+              to="/subscription"
+              className={`px-2.5 py-1 sm:px-3 sm:py-1 rounded-xl text-xs font-black border flex items-center gap-1.5 shadow-2xs active:scale-95 transition-all ${subBadge.className}`}
+              title="Store Subscription Status"
             >
-              <User className="w-4 h-4" />
+              <span className={`w-2 h-2 rounded-full shrink-0 ${subBadge.dot}`} />
+              <span>{subBadge.text}</span>
             </Link>
           </div>
         </header>
