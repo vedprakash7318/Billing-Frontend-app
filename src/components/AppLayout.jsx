@@ -204,15 +204,18 @@ export default function AppLayout({
           </div>
 
           <div className="flex items-center gap-2 shrink-0">
-            {actionButton}
-            <Link
-              to="/subscription"
-              className={`px-2.5 py-1 sm:px-3 sm:py-1 rounded-xl text-xs font-black border flex items-center gap-1.5 shadow-2xs active:scale-95 transition-all ${subBadge.className}`}
-              title="Store Subscription Status"
-            >
-              <span className={`w-2 h-2 rounded-full shrink-0 ${subBadge.dot}`} />
-              <span>{subBadge.text}</span>
-            </Link>
+            {actionButton ? (
+              actionButton
+            ) : (
+              <Link
+                to="/subscription"
+                className={`px-2.5 py-1 sm:px-3 sm:py-1 rounded-xl text-xs font-black border flex items-center gap-1.5 shadow-2xs active:scale-95 transition-all ${subBadge.className}`}
+                title="Store Subscription Status"
+              >
+                <span className={`w-2 h-2 rounded-full shrink-0 ${subBadge.dot}`} />
+                <span>{subBadge.text}</span>
+              </Link>
+            )}
           </div>
         </header>
 
