@@ -67,6 +67,7 @@ export default function Billing() {
 
     const matchesCat =
       selectedCat === 'ALL' ||
+      (selectedCat === 'UNCATEGORIZED' && (!p.category || p.category === null)) ||
       (p.category && (p.category._id === selectedCat || p.category === selectedCat || p.category.id === selectedCat));
 
     return matchesSearch && matchesCat;
@@ -259,6 +260,17 @@ export default function Billing() {
                 }`}
               >
                 All Items
+              </button>
+              <button
+                type="button"
+                onClick={() => setSelectedCat('UNCATEGORIZED')}
+                className={`px-3 py-1 rounded-xl text-[11px] font-bold whitespace-nowrap transition-all ${
+                  selectedCat === 'UNCATEGORIZED'
+                    ? 'bg-emerald-600 text-white shadow-xs'
+                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                }`}
+              >
+                Uncategorized
               </button>
               {categories.map((cat) => (
                 <button

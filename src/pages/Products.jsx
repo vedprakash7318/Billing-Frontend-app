@@ -123,6 +123,19 @@ export default function Products() {
           >
             All Items
           </button>
+          <button
+            onClick={() => {
+              setSelectedCat('UNCATEGORIZED');
+              setPagination((p) => ({ ...p, page: 1 }));
+            }}
+            className={`px-3 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-all ${
+              selectedCat === 'UNCATEGORIZED'
+                ? 'bg-slate-900 text-white shadow-sm'
+                : 'bg-white text-slate-600 border border-slate-200'
+            }`}
+          >
+            Uncategorized
+          </button>
           {categories.map((c) => (
             <button
               key={c.id || c._id}

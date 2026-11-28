@@ -64,13 +64,6 @@ export default function ProductForm() {
       .then((catsRes) => {
         const catList = catsRes.data?.data || [];
         setCategories(catList);
-
-        if (!isEditing && catList.length > 0) {
-          setFormData((prev) => ({
-            ...prev,
-            categoryId: prev.categoryId || catList[0]?.id || catList[0]?._id || '',
-          }));
-        }
       })
       .catch((e) => console.error(e))
       .finally(() => setLoadingCats(false));
@@ -102,9 +95,10 @@ export default function ProductForm() {
       .finally(() => setLoading(false));
   }, [id, isEditing]);
 
-  // Discount calculation
+  // Discount & pricing validation
   const numMrp = Number(formData.mrp) || 0;
   const numPrice = Number(formData.price) || 0;
+  const isPriceGreaterThanMrp = numMrp > 0 && numPrice > numMrp;
   const discountAmount = numMrp > numPrice ? numMrp - numPrice : 0;
   const discountPercent =
     numMrp > 0 && discountAmount > 0 ? Math.round((discountAmount / numMrp) * 100) : 0;
@@ -113,13 +107,13 @@ export default function ProductForm() {
     e.preventDefault();
     setError('');
 
-    if (!formData.categoryId) {
-      setError('Please select or create a category first.');
+    if (numPrice <= 0) {
+      setError('Please enter a valid Selling Price.');
       return;
     }
 
-    if (numPrice <= 0) {
-      setError('Please enter a valid Selling Price.');
+    if (isPriceGreaterThanMrp) {
+      setError(`Selling Price (₹${numPrice}) cannot be greater than MRP (₹${numMrp})`);
       return;
     }
 
@@ -146,7 +140,7 @@ export default function ProductForm() {
         description: formData.description.trim(),
         mrp: numMrp > 0 ? numMrp : numPrice,
         price: numPrice,
-        categoryId: formData.categoryId,
+        categoryId: formData.categoryId || null,
         uniqueCode: formData.uniqueCode.trim().toUpperCase(),
         isActive: formData.isActive,
       };
@@ -187,20 +181,6 @@ export default function ProductForm() {
       <div className="max-w-2xl mx-auto space-y-4">
         {loading || loadingCats ? (
           <div className="py-16 text-center text-xs text-slate-400 animate-pulse">Loading form...</div>
-        ) : categories.length === 0 ? (
-          <div className="bg-white rounded-3xl p-8 text-center border border-slate-200 space-y-3">
-            <Layers className="w-10 h-10 text-amber-500 mx-auto" />
-            <h3 className="text-sm font-bold text-slate-800">No Category Exists</h3>
-            <p className="text-xs text-slate-500">
-              Please create at least one category before adding products.
-            </p>
-            <Link
-              to="/categories/new"
-              className="inline-flex items-center gap-1.5 px-4 py-2 bg-emerald-600 text-white text-xs font-bold rounded-xl"
-            >
-              Create Category Now
-            </Link>
-          </div>
         ) : (
           <form onSubmit={handleSubmit} className="bg-white rounded-3xl p-4 sm:p-5 border border-slate-200/80 shadow-xs space-y-4">
             {error && (
@@ -259,13 +239,22 @@ export default function ProductForm() {
               </div>
             </div>
 
-            {/* MRP & Selling Price (Both inputs with Live Discount Calculation) */}
-            <div className="bg-slate-50/70 p-3.5 rounded-2xl border border-slate-200/80 space-y-3">
+            {/* MRP & Selling Price (Both inputs with Live Discount Calculation & Strict MRP Check) */}
+            <div className={`p-3.5 rounded-2xl border transition-all space-y-3 ${
+              isPriceGreaterThanMrp
+                ? 'bg-rose-50/40 border-rose-300 shadow-xs'
+                : 'bg-slate-50/70 border-slate-200/80'
+            }`}>
               <div className="flex items-center justify-between">
                 <span className="text-[11px] font-black uppercase tracking-wider text-slate-700">
                   Pricing & Customer Discount
                 </span>
-                {discountAmount > 0 ? (
+                {isPriceGreaterThanMrp ? (
+                  <span className="text-[10px] font-black text-rose-700 bg-rose-100 px-2 py-0.5 rounded-full border border-rose-300 flex items-center gap-1 animate-pulse">
+                    <AlertCircle className="w-3 h-3 text-rose-600 shrink-0" />
+                    <span>Selling Price &gt; MRP Not Allowed</span>
+                  </span>
+                ) : discountAmount > 0 ? (
                   <span className="text-[10px] font-black text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full border border-emerald-200 flex items-center gap-1 animate-pulse">
                     <Percent className="w-3 h-3" />
                     <span>{discountPercent}% OFF (Save ₹{discountAmount.toFixed(2)})</span>
@@ -302,11 +291,16 @@ export default function ProductForm() {
 
                 {/* Selling Price Input */}
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">
-                    Selling Price (₹) *
+                  <label className="block text-xs font-bold text-slate-700 mb-1 flex items-center justify-between">
+                    <span>Selling Price (₹) *</span>
+                    {isPriceGreaterThanMrp && (
+                      <span className="text-[10px] font-black text-rose-600">Exceeds MRP!</span>
+                    )}
                   </label>
                   <div className="relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">
+                    <span className={`absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold ${
+                      isPriceGreaterThanMrp ? 'text-rose-500' : 'text-slate-400'
+                    }`}>
                       ₹
                     </span>
                     <input
@@ -325,19 +319,46 @@ export default function ProductForm() {
                           mrp: prev.mrp ? prev.mrp : newPrice,
                         }));
                       }}
-                      className="w-full pl-7 pr-3 py-2.5 bg-white border border-emerald-500 rounded-xl text-xs font-black text-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                      className={`w-full pl-7 pr-3 py-2.5 bg-white rounded-xl text-xs font-black transition-all focus:outline-none ${
+                        isPriceGreaterThanMrp
+                          ? 'border-2 border-rose-500 bg-rose-50/20 text-rose-700 ring-2 ring-rose-500/20'
+                          : 'border border-emerald-500 text-emerald-700 focus:ring-2 focus:ring-emerald-500/20'
+                      }`}
                     />
                   </div>
-                  <span className="text-[9.5px] text-emerald-600 font-bold mt-0.5 block">Actual price billed</span>
+                  {isPriceGreaterThanMrp ? (
+                    <span className="text-[10px] text-rose-600 font-bold mt-1 flex items-center gap-1 animate-pulse">
+                      <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                      <span>Cannot exceed MRP (₹{numMrp})</span>
+                    </span>
+                  ) : (
+                    <span className="text-[9.5px] text-emerald-600 font-bold mt-0.5 block">
+                      Actual price billed
+                    </span>
+                  )}
                 </div>
               </div>
             </div>
 
-            {/* Category: Custom Searchable Dropdown */}
+            {/* Category: Custom Searchable Dropdown (Optional) */}
             <div className="relative" ref={catDropdownRef}>
-              <label className="block text-xs font-bold text-slate-700 mb-1">
-                Category *
-              </label>
+              <div className="flex items-center justify-between mb-1">
+                <label className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+                  <span>Category</span>
+                  <span className="text-[10px] font-semibold text-slate-400">
+                    (Optional)
+                  </span>
+                </label>
+                {formData.categoryId && (
+                  <button
+                    type="button"
+                    onClick={() => setFormData({ ...formData, categoryId: '' })}
+                    className="text-[10px] font-bold text-rose-600 hover:underline"
+                  >
+                    Clear Category
+                  </button>
+                )}
+              </div>
 
               {/* Trigger Button */}
               <button
@@ -349,11 +370,17 @@ export default function ProductForm() {
                 className="w-full px-3.5 py-2.5 bg-slate-50 hover:bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-800 flex items-center justify-between text-left transition-all focus:outline-none focus:border-emerald-500"
               >
                 <div className="flex items-center gap-2 truncate">
-                  <div className="w-5 h-5 rounded-md bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
+                  <div
+                    className={`w-5 h-5 rounded-md flex items-center justify-center shrink-0 ${
+                      selectedCategory
+                        ? 'bg-emerald-100 text-emerald-700'
+                        : 'bg-slate-200 text-slate-500'
+                    }`}
+                  >
                     <Tag className="w-3 h-3" />
                   </div>
                   <span className="truncate">
-                    {selectedCategory ? selectedCategory.name : 'Select a Category...'}
+                    {selectedCategory ? selectedCategory.name : 'No Category (Optional)'}
                   </span>
                 </div>
                 <ChevronDown
@@ -381,38 +408,53 @@ export default function ProductForm() {
 
                   {/* Filtered list of categories */}
                   <div className="max-h-48 overflow-y-auto no-scrollbar p-1 space-y-0.5">
-                    {filteredCategories.length === 0 ? (
-                      <div className="py-4 text-center text-[11px] text-slate-400">
-                        <p>No category matching "{catSearch}"</p>
-                        <Link
-                          to="/categories/new"
-                          className="text-emerald-600 font-bold hover:underline mt-1 inline-block"
+                    {/* Clear / No Category Option */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setFormData({ ...formData, categoryId: '' });
+                        setIsCatDropdownOpen(false);
+                      }}
+                      className={`w-full px-3 py-2 rounded-xl text-xs font-semibold flex items-center justify-between text-left transition-colors ${
+                        !formData.categoryId
+                          ? 'bg-slate-100 text-slate-900 font-bold'
+                          : 'text-slate-500 hover:bg-slate-50'
+                      }`}
+                    >
+                      <span className="truncate italic">None / No Category</span>
+                      {!formData.categoryId && (
+                        <Check className="w-3.5 h-3.5 text-slate-700 shrink-0" />
+                      )}
+                    </button>
+
+                    {filteredCategories.map((c) => {
+                      const isSelected = (c.id || c._id) === formData.categoryId;
+                      return (
+                        <button
+                          key={c.id || c._id}
+                          type="button"
+                          onClick={() => {
+                            setFormData({ ...formData, categoryId: c.id || c._id });
+                            setIsCatDropdownOpen(false);
+                          }}
+                          className={`w-full px-3 py-2 rounded-xl text-xs font-semibold flex items-center justify-between text-left transition-colors ${
+                            isSelected
+                              ? 'bg-emerald-50 text-emerald-700 font-bold'
+                              : 'text-slate-700 hover:bg-slate-100'
+                          }`}
                         >
-                          + Create New Category
-                        </Link>
+                          <span className="truncate">{c.name}</span>
+                          {isSelected && (
+                            <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                          )}
+                        </button>
+                      );
+                    })}
+
+                    {filteredCategories.length === 0 && catSearch && (
+                      <div className="py-3 text-center text-[11px] text-slate-400">
+                        <p>No category matching "{catSearch}"</p>
                       </div>
-                    ) : (
-                      filteredCategories.map((c) => {
-                        const isSelected = (c.id || c._id) === formData.categoryId;
-                        return (
-                          <button
-                            key={c.id || c._id}
-                            type="button"
-                            onClick={() => {
-                              setFormData({ ...formData, categoryId: c.id || c._id });
-                              setIsCatDropdownOpen(false);
-                            }}
-                            className={`w-full px-3 py-2 rounded-xl text-xs font-semibold flex items-center justify-between text-left transition-colors ${
-                              isSelected
-                                ? 'bg-emerald-50 text-emerald-700 font-bold'
-                                : 'text-slate-700 hover:bg-slate-100'
-                            }`}
-                          >
-                            <span className="truncate">{c.name}</span>
-                            {isSelected && <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0" />}
-                          </button>
-                        );
-                      })
                     )}
                   </div>
                 </div>
